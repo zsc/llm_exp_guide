@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第一章：后训练基础理论</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">LLM 后训练实验设计指南</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第一章：后训练基础理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第二章：实验代码基础设施</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第三章：数据工程</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第四章：纯语言任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第五章：多模态任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第六章：强化学习与人类反馈</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第七章：训练循环与迭代优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第八章：评估与基准测试</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第九章：生产部署与监控</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第十章：案例研究与最佳实践</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="_1">第一章：后训练基础理论</h1>
+<h2 id="_2">引言</h2>
+<p>后训练（Post-training）是将预训练好的大语言模型转化为实用AI助手的关键步骤。不同于预训练阶段追求的通用语言建模能力，后训练专注于让模型学会遵循人类指令、保持安全输出、展现有用性。本章将深入探讨后训练的理论基础，包括核心方法论、目标函数设计、以及实践中的关键权衡。</p>
+<p><strong>学习目标</strong>：</p>
+<ul>
+<li>理解后训练与预训练的本质区别</li>
+<li>掌握SFT、RLHF、DPO等主流方法的数学原理</li>
+<li>认识对齐税（Alignment Tax）及其影响</li>
+<li>学会分析和处理分布偏移问题</li>
+</ul>
+<h2 id="11">1.1 后训练的定义与动机</h2>
+<h3 id="111-ai">1.1.1 从语言模型到AI助手</h3>
+<p>预训练模型通过在海量文本上学习，获得了强大的语言理解和生成能力。然而，原始的语言模型存在几个关键问题：</p>
+<ol>
+<li><strong>目标不匹配</strong>：预训练优化的是下一个token预测准确率，而非完成用户任务</li>
+<li><strong>行为不可控</strong>：可能生成有害、偏见或虚假内容  </li>
+<li><strong>交互能力差</strong>：缺乏对话管理、指令理解等能力</li>
+</ol>
+<p>后训练通过引入人类偏好和价值观，将"预测下一个token"的模型转化为"完成人类任务"的助手。这个转化过程本质上是一个<strong>分布对齐</strong>问题：</p>
+<p>$$P_{pretrain}(y|x) \rightarrow P_{aligned}(y|x) \approx P_{human}(y|x)$$</p>
+<h3 id="112">1.1.2 后训练的目标层次</h3>
+<p>后训练的目标可以分解为多个层次，每个层次都有其独特的挑战：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">L4</span><span class="o">:</span><span class="w"> </span><span class="err">价值对齐</span><span class="w"> </span><span class="o">(</span><span class="n">Value</span><span class="w"> </span><span class="n">Alignment</span><span class="o">)</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">伦理原则遵循</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">文化敏感性</span>
+<span class="w">    </span><span class="err">└──</span><span class="w"> </span><span class="err">长期影响考虑</span>
+
+<span class="n">L3</span><span class="o">:</span><span class="w"> </span><span class="err">任务能力</span><span class="w"> </span><span class="o">(</span><span class="n">Task</span><span class="w"> </span><span class="n">Capability</span><span class="o">)</span><span class="w">  </span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">指令理解与执行</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">多步推理</span>
+<span class="w">    </span><span class="err">└──</span><span class="w"> </span><span class="err">知识运用</span>
+
+<span class="n">L2</span><span class="o">:</span><span class="w"> </span><span class="err">交互质量</span><span class="w"> </span><span class="o">(</span><span class="n">Interaction</span><span class="w"> </span><span class="n">Quality</span><span class="o">)</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">对话连贯性</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">角色一致性</span>
+<span class="w">    </span><span class="err">└──</span><span class="w"> </span><span class="err">语气适应性</span>
+
+<span class="n">L1</span><span class="o">:</span><span class="w"> </span><span class="err">基础安全</span><span class="w"> </span><span class="o">(</span><span class="n">Basic</span><span class="w"> </span><span class="n">Safety</span><span class="o">)</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">有害内容过滤</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="err">个人信息保护</span>
+<span class="w">    </span><span class="err">└──</span><span class="w"> </span><span class="err">事实准确性</span>
+</code></pre></div>
+
+<p>每个层次的优化往往存在冲突。例如，过度强调L1的安全性可能损害L3的任务能力，这就是后训练中的根本性权衡。</p>
+<h3 id="113">1.1.3 后训练的核心挑战</h3>
+<p>后训练面临的挑战不仅是技术性的，更是系统性的：</p>
+<div class="codehilite"><pre><span></span><code>预训练分布 P_pretrain(x)
+     ↓
+   后训练（多目标优化）
+     ↓
+目标分布 P_aligned(x)
+
+核心挑战：
+
+1. 保留原有能力（避免灾难性遗忘）
+   <span class="k">-</span> 知识保持率 &gt; 90%
+   <span class="k">-</span> 推理能力保持率 &gt; 85%
+
+2. 学习新行为（指令跟随）
+   <span class="k">-</span> 指令遵循率 &gt; 95%
+   <span class="k">-</span> 格式一致性 &gt; 90%
+
+3. 维持输出多样性（避免模式坍塌）
+   <span class="k">-</span> 响应熵 H(Y|X) &gt; 阈值
+   <span class="k">-</span> 创造性任务多样性保持
+
+4. 分布泛化（OOD Generalization）
+   <span class="k">-</span> 训练分布 ≠ 部署分布
+   <span class="k">-</span> 需要鲁棒性机制
+</code></pre></div>
+
+<h3 id="114">1.1.4 后训练的数学形式化</h3>
+<p>从优化角度看，后训练可以形式化为约束优化问题：
+$$\begin{aligned}
+\max_{\theta} &amp;\quad \mathbb{E}_{x \sim \mathcal{D}_{deploy}}[\text{Utility}(x, \pi_\theta)] \\
+\text{s.t.} &amp;\quad \text{Safety}(\pi_\theta) \geq \tau_{safe} \\
+&amp;\quad D_{KL}(\pi_\theta || \pi_{pretrain}) \leq \epsilon \\
+&amp;\quad \text{Diversity}(\pi_\theta) \geq \tau_{div}
+\end{aligned}$$
+其中：</p>
+<ul>
+<li>Utility 衡量模型的有用性</li>
+<li>Safety 确保输出安全性</li>
+<li>KL约束防止能力退化</li>
+<li>Diversity 保持输出多样性</li>
+</ul>
+<h3 id="115-vs">1.1.5 预训练vs后训练的本质区别</h3>
+<p>| 维度 | 预训练 | 后训练 |</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>预训练</th>
+<th>后训练</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>优化目标</strong></td>
+<td>最大似然 $P(x)$</td>
+<td>最大效用 $U(x,y)$</td>
+</tr>
+<tr>
+<td><strong>数据规模</strong></td>
+<td>TB级别</td>
+<td>GB级别</td>
+</tr>
+<tr>
+<td><strong>数据质量</strong></td>
+<td>数量&gt;质量</td>
+<td>质量&gt;数量</td>
+</tr>
+<tr>
+<td><strong>学习范式</strong></td>
+<td>无监督/自监督</td>
+<td>监督/强化学习</td>
+</tr>
+<tr>
+<td><strong>计算需求</strong></td>
+<td>数千GPU天</td>
+<td>数十GPU天</td>
+</tr>
+<tr>
+<td><strong>更新频率</strong></td>
+<td>一次性</td>
+<td>持续迭代</td>
+</tr>
+<tr>
+<td><strong>评估标准</strong></td>
+<td>困惑度</td>
+<td>人类偏好</td>
+</tr>
+</tbody>
+</table>
+<h2 id="12">1.2 后训练方法体系</h2>
+<h3 id="121-sft">1.2.1 监督微调（SFT）</h3>
+<p>监督微调是最直接的后训练方法，通过高质量的（指令，响应）对来训练模型。虽然概念简单，但SFT的实施细节决定了后续所有方法的基础质量。</p>
+<p><strong>损失函数</strong>：
+$$\mathcal{L}_{SFT} = -\mathbb{E}_{(x,y) \sim \mathcal{D}_{SFT}} \left[ \sum_{t=1}^{|y|} \log p_\theta(y_t | x, y_{&lt;t}) \right]$$
+其中：</p>
+<ul>
+<li>$x$ 是输入指令</li>
+<li>$y$ 是目标响应  </li>
+<li>$\mathcal{D}_{SFT}$ 是监督数据集</li>
+</ul>
+<p><strong>数据构造策略</strong>：</p>
+<ol>
+<li>
+<p><strong>人工编写</strong>：成本高但质量最佳
+   - 典型规模：5K-50K样本
+   - 成本：$5-50/样本</p>
+</li>
+<li>
+<p><strong>模型生成+人工筛选</strong>：平衡成本和质量
+   - 生成10x候选，人工选择最佳
+   - 成本降低80%，质量保持90%</p>
+</li>
+<li>
+<p><strong>自举方法（Self-Instruct）</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">self_instruct</span><span class="p">(</span><span class="n">seed_tasks</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="n">seed_tasks</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iter</span><span class="p">):</span>
+        <span class="c1"># 生成新指令</span>
+        <span class="n">new_instructions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate_instructions</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="c1"># 生成响应</span>
+        <span class="n">responses</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate_responses</span><span class="p">(</span><span class="n">new_instructions</span><span class="p">)</span>
+        <span class="c1"># 质量过滤</span>
+        <span class="n">filtered</span> <span class="o">=</span> <span class="n">quality_filter</span><span class="p">(</span><span class="n">new_instructions</span><span class="p">,</span> <span class="n">responses</span><span class="p">)</span>
+        <span class="n">tasks</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tasks</span>
+</code></pre></div>
+
+<p><strong>关键超参数选择</strong>：</p>
+<p>| 参数 | 推荐值 | 说明 |</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>推荐值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习率</td>
+<td>1e-5 ~ 5e-6</td>
+<td>比预训练低10x</td>
+</tr>
+<tr>
+<td>Batch Size</td>
+<td>32-128</td>
+<td>取决于序列长度</td>
+</tr>
+<tr>
+<td>Epochs</td>
+<td>1-3</td>
+<td>避免过拟合</td>
+</tr>
+<tr>
+<td>Warmup Steps</td>
+<td>100-500</td>
+<td>平滑初始训练</td>
+</tr>
+<tr>
+<td>Weight Decay</td>
+<td>0.01</td>
+<td>轻微正则化</td>
+</tr>
+<tr>
+<td>Gradient Clipping</td>
+<td>1.0</td>
+<td>防止梯度爆炸</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SFT的隐含陷阱</strong>：</p>
+<ul>
+<li><strong>格式过拟合</strong>：模型记住特定格式而非学会任务</li>
+<li><strong>多样性丧失</strong>：响应变得模板化</li>
+<li><strong>长度偏见</strong>：倾向生成训练数据的平均长度</li>
+</ul>
+<h3 id="122-rlhf">1.2.2 人类反馈强化学习（RLHF）</h3>
+<p>RLHF通过强化学习优化人类偏好，是目前最成功的对齐方法。其核心创新在于将人类偏好转化为可优化的奖励信号。</p>
+<p><strong>完整RLHF流程</strong>：</p>
+<div class="codehilite"><pre><span></span><code>Step 1: 收集偏好数据
+├── 对同一指令生成多个响应
+├── 人工标注偏好排序
+└── 构建对比数据集
+
+Step 2: 训练奖励模型
+├── 使用Bradley-Terry模型
+├── 学习隐含奖励函数
+└── 验证奖励一致性
+
+Step 3: PPO优化
+├── 初始化：π_θ = π_SFT
+├── 采样：生成响应
+├── 评分：计算奖励
+├── 更新：PPO梯度步
+└── 约束：KL惩罚
+</code></pre></div>
+
+<p><strong>1. 奖励模型训练</strong>：
+$$\mathcal{L}_{RM} = -\mathbb{E}_{(x,y_w,y_l) \sim \mathcal{D}_{pref}} \left[ \log \sigma(r_\phi(x,y_w) - r_\phi(x,y_l)) \right]$$
+<strong>奖励模型架构选择</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">RewardModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">base_model</span>
+        <span class="c1"># 关键：使用独立的value head</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value_head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">attention_mask</span><span class="p">):</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">attention_mask</span><span class="p">)</span>
+        <span class="c1"># 使用最后一个token的表示</span>
+        <span class="n">rewards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_head</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">last_hidden_state</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span>
+        <span class="k">return</span> <span class="n">rewards</span>
+</code></pre></div>
+
+<p><strong>2. PPO策略优化</strong>：</p>
+<p>PPO的核心是通过clip机制限制策略更新幅度：
+$$\mathcal{L}_{PPO}^{clip} = \mathbb{E}_t \left[ \min \left( r_t(\theta) \hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right) \right]$$
+其中比率 $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{old}(a_t|s_t)}$</p>
+<p><strong>PPO超参数经验值</strong>：</p>
+<ul>
+<li>clip范围 $\epsilon$: 0.2</li>
+<li>价值函数系数: 0.5</li>
+<li>熵奖励系数: 0.01</li>
+<li>KL惩罚 $\beta$: 动态调整</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">kl</span> <span class="o">&gt;</span> <span class="n">target_kl</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">:</span>
+    <span class="n">β</span> <span class="o">*=</span> <span class="mf">1.5</span>  <span class="c1"># 增强约束</span>
+<span class="k">elif</span> <span class="n">kl</span> <span class="o">&lt;</span> <span class="n">target_kl</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">:</span>
+    <span class="n">β</span> <span class="o">*=</span> <span class="mf">0.5</span>  <span class="c1"># 放松约束</span>
+</code></pre></div>
+
+<p><strong>3. KL散度约束的重要性</strong>：</p>
+<p>KL约束防止策略偏离过远，保持模型能力：
+$$D_{KL}(\pi_\theta || \pi_{ref}) = \mathbb{E}_{y \sim \pi_\theta} \left[ \log \frac{\pi_\theta(y|x)}{\pi_{ref}(y|x)} \right]$$
+实践中的KL预算分配：</p>
+<ul>
+<li>初期（探索）：KL budget = 10-20</li>
+<li>中期（优化）：KL budget = 5-10  </li>
+<li>后期（收敛）：KL budget = 1-5</li>
+</ul>
+<h3 id="123-dpo">1.2.3 直接偏好优化（DPO）</h3>
+<p>DPO通过重参数化技巧，将RLHF的RL问题转化为监督学习问题，大幅简化了训练流程。</p>
+<p><strong>理论推导</strong>：</p>
+<p>从RLHF的优化目标出发：
+$$\max_{\pi_\theta} \mathbb{E}_{x,y \sim \pi_\theta} [r(x,y)] - \beta D_{KL}(\pi_\theta || \pi_{ref})$$
+最优策略的闭式解为：
+$$\pi^*(y|x) = \frac{1}{Z(x)} \pi_{ref}(y|x) \exp\left(\frac{1}{\beta}r(x,y)\right)$$
+代入Bradley-Terry模型，得到DPO损失：
+$$\mathcal{L}_{DPO} = -\mathbb{E}_{(x,y_w,y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)} \right) \right]$$
+<strong>DPO实施细节</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">compute_dpo_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ref_model</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+    <span class="c1"># 计算策略模型的log概率</span>
+    <span class="n">policy_chosen_logps</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">chosen</span><span class="p">)</span>
+    <span class="n">policy_reject_logps</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">rejected</span><span class="p">)</span>
+
+    <span class="c1"># 计算参考模型的log概率</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">ref_chosen_logps</span> <span class="o">=</span> <span class="n">ref_model</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">chosen</span><span class="p">)</span>
+        <span class="n">ref_reject_logps</span> <span class="o">=</span> <span class="n">ref_model</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">rejected</span><span class="p">)</span>
+
+    <span class="c1"># 计算log比率</span>
+    <span class="n">chosen_rewards</span> <span class="o">=</span> <span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">policy_chosen_logps</span> <span class="o">-</span> <span class="n">ref_chosen_logps</span><span class="p">)</span>
+    <span class="n">reject_rewards</span> <span class="o">=</span> <span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">policy_reject_logps</span> <span class="o">-</span> <span class="n">ref_reject_logps</span><span class="p">)</span>
+
+    <span class="c1"># DPO损失</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">F</span><span class="o">.</span><span class="n">logsigmoid</span><span class="p">(</span><span class="n">chosen_rewards</span> <span class="o">-</span> <span class="n">reject_rewards</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">loss</span>
+</code></pre></div>
+
+<p><strong>DPO vs RLHF对比</strong>：</p>
+<p>| 方面 | RLHF | DPO |</p>
+<table>
+<thead>
+<tr>
+<th>方面</th>
+<th>RLHF</th>
+<th>DPO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>内存需求</strong></td>
+<td>4个模型</td>
+<td>2个模型</td>
+</tr>
+<tr>
+<td><strong>训练稳定性</strong></td>
+<td>需要精细调参</td>
+<td>稳定如SFT</td>
+</tr>
+<tr>
+<td><strong>采样需求</strong></td>
+<td>在线采样</td>
+<td>离线数据</td>
+</tr>
+<tr>
+<td><strong>超参数</strong></td>
+<td>10+</td>
+<td>2-3</td>
+</tr>
+<tr>
+<td><strong>收敛速度</strong></td>
+<td>慢</td>
+<td>快</td>
+</tr>
+<tr>
+<td><strong>最终性能</strong></td>
+<td>★★★★★</td>
+<td>★★★★</td>
+</tr>
+</tbody>
+</table>
+<h3 id="124">1.2.4 其他后训练方法</h3>
+<p><strong>1. IPO (Identity Preference Optimization)</strong>：</p>
+<p>使用更简单的损失函数：
+$$\mathcal{L}_{IPO} = \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)} - \tau \right)^2$$
+优势：避免sigmoid饱和问题</p>
+<p><strong>2. RLAIF (RL from AI Feedback)</strong>：</p>
+<p>用AI模型替代人类标注：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">generate_ai_preferences</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">responses</span><span class="p">,</span> <span class="n">critic_model</span><span class="p">):</span>
+    <span class="c1"># AI评判标准</span>
+    <span class="n">criteria</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+
+<span class="s2">    1. 准确性和事实性</span>
+<span class="s2">    2. 有用性和相关性</span>
+<span class="s2">    3. 清晰度和组织性</span>
+<span class="s2">    4. 安全性和适当性</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">responses</span><span class="p">:</span>
+        <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">criteria</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">指令：</span><span class="si">{</span><span class="n">instruction</span><span class="si">}</span><span class="se">\n</span><span class="s2">响应：</span><span class="si">{</span><span class="n">response</span><span class="si">}</span><span class="se">\n</span><span class="s2">评分：&quot;</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">critic_model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+        <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+
+    <span class="c1"># 转换为偏好对</span>
+    <span class="n">preferences</span> <span class="o">=</span> <span class="n">create_preference_pairs</span><span class="p">(</span><span class="n">responses</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">preferences</span>
+</code></pre></div>
+
+<p><strong>3. Constitutional AI</strong>：</p>
+<p>通过规则引导的自我改进：</p>
+<div class="codehilite"><pre><span></span><code>Initial Response → Critique → Revision → Final Response
+         ↑                                      ↓
+         └──────── Constitutional Rules ────────┘
+</code></pre></div>
+
+<p><strong>4. ORPO (Odds Ratio Preference Optimization)</strong>：</p>
+<p>结合SFT和偏好优化：
+$$\mathcal{L}_{ORPO} = \mathcal{L}_{SFT} + \lambda \cdot \mathcal{L}_{OR}$$
+其中odds ratio损失：
+$$\mathcal{L}_{OR} = -\log \sigma\left(\log \frac{\text{odds}_\theta(y_w|x)}{\text{odds}_\theta(y_l|x)}\right)$$</p>
+<h2 id="13">1.3 对齐税与能力权衡</h2>
+<h3 id="131">1.3.1 对齐税的定义与表现</h3>
+<p>对齐税（Alignment Tax）是后训练不可避免的副作用，指模型为了获得对齐能力（安全性、有用性、诚实性）而付出的原始能力代价。这不是bug，而是当前技术的根本性限制。</p>
+<p><strong>对齐税的具体表现</strong>：</p>
+<div class="codehilite"><pre><span></span><code>能力维度评估（真实案例统计）：
+┌─────────────────┬──────────┬──────────┬─────────────┐
+│    能力类别      │ 预训练   │ 后训练   │   退化原因   │
+├─────────────────┼──────────┼──────────┼─────────────┤
+│ 事实知识召回    │   95%    │   92%    │ 安全过滤    │
+│ 数学推理        │   88%    │   85%    │ 格式约束    │
+│ 代码生成        │   92%    │   88%    │ 拒绝机制    │
+│ 创造性写作      │   90%    │   75%    │ 模式坍塌    │
+│ 多语言能力      │   85%    │   78%    │ 英语偏向    │
+├─────────────────┼──────────┼──────────┼─────────────┤
+│ 安全性          │   60%    │   95%    │ 主要目标 ✓  │
+│ 指令跟随        │   40%    │   90%    │ 主要目标 ✓  │
+│ 拒绝有害请求    │   20%    │   98%    │ 主要目标 ✓  │
+└─────────────────┴──────────┴──────────┴─────────────┘
+</code></pre></div>
+
+<p><strong>对齐税的深层机制</strong>：</p>
+<ol>
+<li><strong>表示空间重组</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 可视化：t-SNE投影显示</span>
+<span class="c1"># 预训练：知识均匀分布</span>
+<span class="c1"># 后训练：形成&quot;安全区&quot;和&quot;危险区&quot;聚类</span>
+</code></pre></div>
+
+<ol start="2">
+<li>
+<p><strong>注意力模式改变</strong>：
+   - 预训练：均匀注意力分布
+   - 后训练：过度关注安全相关token</p>
+</li>
+<li>
+<p><strong>输出分布变窄</strong>：
+$$H(Y|X)_{aligned} &lt; H(Y|X)_{pretrain}$$</p>
+</li>
+</ol>
+<h3 id="132">1.3.2 对齐税的精确测量</h3>
+<p><strong>多维度测量框架</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">AlignmentTaxMeasurer</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pretrain_model</span><span class="p">,</span> <span class="n">aligned_model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;knowledge&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;MMLU&#39;</span><span class="p">,</span> <span class="s1">&#39;TriviaQA&#39;</span><span class="p">,</span> <span class="s1">&#39;NaturalQuestions&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;reasoning&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;GSM8K&#39;</span><span class="p">,</span> <span class="s1">&#39;MATH&#39;</span><span class="p">,</span> <span class="s1">&#39;BBH&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;coding&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;HumanEval&#39;</span><span class="p">,</span> <span class="s1">&#39;MBPP&#39;</span><span class="p">,</span> <span class="s1">&#39;CodeContests&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;creativity&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;story_continuation&#39;</span><span class="p">,</span> <span class="s1">&#39;poetry_generation&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;multimodal&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;VQA&#39;</span><span class="p">,</span> <span class="s1">&#39;COCO_caption&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">has_vision</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">measure_tax</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">tests</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">pretrain_scores</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrain_model</span><span class="p">,</span> <span class="n">tests</span><span class="p">)</span>
+            <span class="n">aligned_scores</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aligned_model</span><span class="p">,</span> <span class="n">tests</span><span class="p">)</span>
+
+            <span class="c1"># 计算各种指标</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;absolute_drop&#39;</span><span class="p">:</span> <span class="n">pretrain_scores</span> <span class="o">-</span> <span class="n">aligned_scores</span><span class="p">,</span>
+                <span class="s1">&#39;relative_drop&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">pretrain_scores</span> <span class="o">-</span> <span class="n">aligned_scores</span><span class="p">)</span> <span class="o">/</span> <span class="n">pretrain_scores</span><span class="p">,</span>
+                <span class="s1">&#39;worst_case&#39;</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">aligned_scores</span><span class="p">),</span>
+                <span class="s1">&#39;variance&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">aligned_scores</span><span class="p">)</span>
+            <span class="p">}</span>
+
+        <span class="c1"># 综合对齐税</span>
+        <span class="n">total_tax</span> <span class="o">=</span> <span class="n">weighted_average</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">importance_weights</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span><span class="p">,</span> <span class="n">total_tax</span>
+</code></pre></div>
+
+<p><strong>细粒度分析</strong>：</p>
+<ol>
+<li>
+<p><strong>Token级别对齐税</strong>：
+$$\text{Tax}_{token} = \sum_{t} D_{KL}(P_{pre}(x_t) || P_{align}(x_t))$$</p>
+</li>
+<li>
+<p><strong>任务级别对齐税</strong>：
+$$\text{Tax}_{task} = \frac{\text{Perf}_{pre} - \text{Perf}_{align}}{\text{Perf}_{pre}}$$</p>
+</li>
+<li>
+<p><strong>分布级别对齐税</strong>：
+$$\text{Tax}_{dist} = \mathcal{W}_2(P_{pre}, P_{align})$$
+（Wasserstein距离）</p>
+</li>
+</ol>
+<h3 id="133">1.3.3 对齐税的缓解策略</h3>
+<p><strong>1. 混合训练（Mix Training）</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">create_mixed_dataset</span><span class="p">(</span><span class="n">alignment_data</span><span class="p">,</span> <span class="n">pretrain_data</span><span class="p">,</span> <span class="n">mix_ratio</span><span class="o">=</span><span class="mf">0.9</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    关键发现：10-15%的预训练数据可减少50%的对齐税</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_alignment</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">alignment_data</span><span class="p">)</span> <span class="o">*</span> <span class="n">mix_ratio</span><span class="p">)</span>
+    <span class="n">n_pretrain</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alignment_data</span><span class="p">)</span> <span class="o">-</span> <span class="n">n_alignment</span>
+
+    <span class="c1"># 策略1：随机混合</span>
+    <span class="n">mixed</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">alignment_data</span><span class="p">,</span> <span class="n">n_alignment</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">pretrain_data</span><span class="p">,</span> <span class="n">n_pretrain</span><span class="p">)</span>
+
+    <span class="c1"># 策略2：课程混合（推荐）</span>
+    <span class="c1"># 早期多预训练数据，后期多对齐数据</span>
+    <span class="n">schedule</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">epoch</span><span class="p">:</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epoch</span><span class="o">/</span><span class="mi">10</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.1</span>
+
+    <span class="k">return</span> <span class="n">mixed</span>
+</code></pre></div>
+
+<p><strong>2. 弹性权重巩固（EWC）</strong>：</p>
+<p>保护重要参数不被过度修改：
+$$\mathcal{L}_{EWC} = \mathcal{L}_{align} + \frac{\lambda}{2} \sum_i F_i (\theta_i - \theta_{pre,i})^2$$
+其中$F_i$是Fisher信息矩阵的对角元素：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">compute_fisher_information</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">fisher</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">loss</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fisher</span><span class="p">:</span>
+                    <span class="n">fisher</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fisher</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">+=</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="c1"># 归一化</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fisher</span><span class="p">:</span>
+        <span class="n">fisher</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fisher</span>
+</code></pre></div>
+
+<p><strong>3. 层级微调（Layer-wise Fine-tuning）</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">layerwise_finetune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">layer_schedule</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    从顶层到底层逐渐解冻</span>
+<span class="sd">    底层保留更多预训练知识</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">stage</span><span class="p">,</span> <span class="n">layers_to_unfreeze</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layer_schedule</span><span class="p">):</span>
+        <span class="c1"># 冻结所有层</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># 解冻指定层</span>
+        <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="n">layers_to_unfreeze</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># 训练当前阶段</span>
+        <span class="n">train_stage</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>4. 知识蒸馏（Knowledge Distillation）</strong>：</p>
+<p>从预训练模型蒸馏知识：
+$$\mathcal{L}_{KD} = \alpha \mathcal{L}_{align} + (1-\alpha) \mathcal{L}_{distill}$$
+其中：
+$$\mathcal{L}_{distill} = \tau^2 \cdot D_{KL}(P_{student}^{\tau} || P_{teacher}^{\tau})$$</p>
+<h3 id="134">1.3.4 帕累托前沿优化</h3>
+<p>在多目标优化中，寻找能力-对齐的最优权衡：</p>
+<div class="codehilite"><pre><span></span><code>对齐程度 ↑
+    │     ○ 帕累托最优点
+    │    ╱│
+    │   ╱ │ ← 可达区域
+    │  ╱  • 次优解
+    │ ╱   │
+    │╱    │
+    └──────┴──→ 原始能力
+         能力保持阈值
+</code></pre></div>
+
+<p><strong>多目标优化算法</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">pareto_optimization</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="n">objectives</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    NSGA-II风格的多目标优化</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">population</span> <span class="o">=</span> <span class="n">initialize_population</span><span class="p">(</span><span class="n">models</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">generation</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_generations</span><span class="p">):</span>
+        <span class="c1"># 评估每个模型</span>
+        <span class="n">fitness</span> <span class="o">=</span> <span class="n">evaluate_objectives</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">objectives</span><span class="p">)</span>
+
+        <span class="c1"># 非支配排序</span>
+        <span class="n">fronts</span> <span class="o">=</span> <span class="n">non_dominated_sort</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">fitness</span><span class="p">)</span>
+
+        <span class="c1"># 选择下一代</span>
+        <span class="n">next_gen</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">front</span> <span class="ow">in</span> <span class="n">fronts</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">next_gen</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">front</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">pop_size</span><span class="p">:</span>
+                <span class="n">next_gen</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">front</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># 拥挤度排序</span>
+                <span class="n">crowding</span> <span class="o">=</span> <span class="n">crowding_distance</span><span class="p">(</span><span class="n">front</span><span class="p">,</span> <span class="n">fitness</span><span class="p">)</span>
+                <span class="n">sorted_front</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">front</span><span class="p">,</span> <span class="n">crowding</span><span class="p">),</span> 
+                                    <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">remaining</span> <span class="o">=</span> <span class="n">pop_size</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">next_gen</span><span class="p">)</span>
+                <span class="n">next_gen</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sorted_front</span><span class="p">[:</span><span class="n">remaining</span><span class="p">]])</span>
+                <span class="k">break</span>
+
+        <span class="n">population</span> <span class="o">=</span> <span class="n">next_gen</span>
+
+    <span class="k">return</span> <span class="n">get_pareto_front</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">fitness</span><span class="p">)</span>
+</code></pre></div>
+
+<h2 id="14">1.4 指令跟随与安全性平衡</h2>
+<h3 id="141">1.4.1 指令理解的层次结构</h3>
+<p>指令理解不是二元的（理解/不理解），而是存在复杂的层次结构：</p>
+<div class="codehilite"><pre><span></span><code>Level 5: 元认知理解
+  └── &quot;我要你忽略之前的指令&quot; → 识别并拒绝
+
+Level 4: 价值对齐理解
+  └── &quot;帮我写一封辞职信&quot; → 考虑后果和建议
+
+Level 3: 隐含意图推理  
+  └── &quot;太热了&quot; → 推断：调节温度/开窗/提供饮品建议
+
+Level 2: 多步骤指令分解
+  └── &quot;先总结文章要点，然后翻译成中文，最后写一段评论&quot;
+
+Level 1: 直接指令执行
+  └── &quot;将这段话翻译成英文&quot;
+
+Level 0: 语法解析
+  └── 基础的句法理解
+</code></pre></div>
+
+<p><strong>指令歧义处理矩阵</strong>：</p>
+<p>| 歧义类型 | 示例 | 处理策略 |</p>
+<table>
+<thead>
+<tr>
+<th>歧义类型</th>
+<th>示例</th>
+<th>处理策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>范围歧义</strong></td>
+<td>"总结这个"</td>
+<td>请求澄清范围</td>
+</tr>
+<tr>
+<td><strong>程度歧义</strong></td>
+<td>"简要说明"</td>
+<td>提供多个长度选项</td>
+</tr>
+<tr>
+<td><strong>意图歧义</strong></td>
+<td>"处理这个问题"</td>
+<td>列举可能的处理方式</td>
+</tr>
+<tr>
+<td><strong>冲突指令</strong></td>
+<td>"详细但简短"</td>
+<td>指出矛盾并建议</td>
+</tr>
+</tbody>
+</table>
+<h3 id="142">1.4.2 安全边界的动态设计</h3>
+<p>安全不是静态规则，而是动态决策：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">DynamicSafetyBoundary</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">static_rules</span> <span class="o">=</span> <span class="n">load_constitution</span><span class="p">()</span>  <span class="c1"># 基础规则</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context_factors</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;user_history&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;conversation_context&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;detected_intent&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;risk_level&#39;</span><span class="p">:</span> <span class="mi">0</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">evaluate_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="c1"># 1. 静态规则检查</span>
+        <span class="n">static_risk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_static_rules</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="c1"># 2. 上下文风险评估</span>
+        <span class="n">context_risk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_context</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="c1"># 3. 意图分析</span>
+        <span class="n">intent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_intent</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="c1"># 4. 综合决策</span>
+        <span class="n">total_risk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weighted_risk</span><span class="p">(</span><span class="n">static_risk</span><span class="p">,</span> <span class="n">context_risk</span><span class="p">,</span> <span class="n">intent</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">total_risk</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;REFUSE&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_refusal</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">total_risk</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">total_risk</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;WARN&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_warning</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> 
+        <span class="k">elif</span> <span class="n">total_risk</span> <span class="o">&gt;</span> <span class="mf">0.3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;CAVEAT&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_disclaimer</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;ALLOW&quot;</span><span class="p">,</span> <span class="kc">None</span>
+</code></pre></div>
+
+<p><strong>安全-有用性权衡曲线</strong>：</p>
+<div class="codehilite"><pre><span></span><code>有用性 ↑
+100%│     
+    │   ╱ ← 理想曲线
+ 80%│  ╱
+    │ ╱ • 当前SOTA
+ 60%│╱
+    │── ← 基础线
+ 40%│
+    │
+ 20%│
+    └────────────→ 安全性
+     60% 80% 100%
+</code></pre></div>
+
+<h3 id="143">1.4.3 拒绝机制的分层实现</h3>
+<p><strong>智能拒绝框架</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">IntelligentRefusal</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refusal_templates</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;illegal&#39;</span><span class="p">:</span> <span class="s2">&quot;我不能协助违法活动。&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;harmful&#39;</span><span class="p">:</span> <span class="s2">&quot;这可能造成伤害，我不能提供帮助。&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;privacy&#39;</span><span class="p">:</span> <span class="s2">&quot;我不能分享个人隐私信息。&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;uncertain&#39;</span><span class="p">:</span> <span class="s2">&quot;我不确定这是否合适，让我们换个话题。&quot;</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">generate_refusal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">risk_type</span><span class="p">):</span>
+        <span class="c1"># 1. 识别具体风险</span>
+        <span class="n">specific_risk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">identify_specific_risk</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="c1"># 2. 解释原因（教育性）</span>
+        <span class="n">explanation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">explain_why_harmful</span><span class="p">(</span><span class="n">specific_risk</span><span class="p">)</span>
+
+        <span class="c1"># 3. 提供替代方案</span>
+        <span class="n">alternatives</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">suggest_alternatives</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">risk_type</span><span class="p">)</span>
+
+        <span class="c1"># 4. 组合响应</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">refusal_templates</span><span class="p">[</span><span class="n">risk_type</span><span class="p">]</span><span class="si">}</span>
+
+<span class="s2">        </span><span class="si">{</span><span class="n">explanation</span><span class="si">}</span>
+
+<span class="s2">        作为替代，我可以：</span>
+<span class="s2">        </span><span class="si">{</span><span class="n">alternatives</span><span class="si">}</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">response</span>
+</code></pre></div>
+
+<p><strong>拒绝粒度控制</strong>：</p>
+<div class="codehilite"><pre><span></span><code>请求分类决策树：
+├── 明确有害（&gt;95%确定）
+│   └── 直接拒绝 + 简短解释
+├── 可能有害（70-95%确定）
+│   └── 软性拒绝 + 详细解释 + 替代建议
+├── 边界模糊（30-70%确定）
+│   ├── 部分满足 + 安全限制
+│   └── 要求澄清意图
+└── 安全请求（&lt;30%风险）
+    └── 正常执行 + 可选免责声明
+</code></pre></div>
+
+<h3 id="144">1.4.4 指令优先级与冲突解决</h3>
+<p>当多个指令或约束发生冲突时的处理：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">InstructionPriorityResolver</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># 优先级从高到低</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">priority_hierarchy</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;legal_compliance&#39;</span><span class="p">,</span>      <span class="c1"># 法律合规</span>
+            <span class="s1">&#39;safety&#39;</span><span class="p">,</span>               <span class="c1"># 安全性</span>
+            <span class="s1">&#39;privacy&#39;</span><span class="p">,</span>              <span class="c1"># 隐私保护</span>
+            <span class="s1">&#39;truthfulness&#39;</span><span class="p">,</span>         <span class="c1"># 真实性</span>
+            <span class="s1">&#39;helpfulness&#39;</span><span class="p">,</span>          <span class="c1"># 有用性</span>
+            <span class="s1">&#39;user_preference&#39;</span>       <span class="c1"># 用户偏好</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">resolve_conflict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instructions</span><span class="p">):</span>
+        <span class="n">conflicts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detect_conflicts</span><span class="p">(</span><span class="n">instructions</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">conflicts</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge_instructions</span><span class="p">(</span><span class="n">instructions</span><span class="p">)</span>
+
+        <span class="c1"># 基于优先级解决冲突</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">conflict</span> <span class="ow">in</span> <span class="n">conflicts</span><span class="p">:</span>
+            <span class="n">winning_instruction</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="n">conflict</span><span class="o">.</span><span class="n">instructions</span><span class="p">,</span>
+                <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">priority_hierarchy</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">resolved</span><span class="p">[</span><span class="n">conflict</span><span class="o">.</span><span class="n">aspect</span><span class="p">]</span> <span class="o">=</span> <span class="n">winning_instruction</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">synthesize_response</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+</code></pre></div>
+
+<h2 id="15">1.5 分布偏移问题</h2>
+<h3 id="151-">1.5.1 训练-推理分布差异的系统分析</h3>
+<p>分布偏移是后训练部署中最被低估的问题之一。即使模型在测试集上表现完美，实际部署时仍可能崩溃。</p>
+<p><strong>多维度分布偏移分类</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">DistributionShift</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shift_types</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;covariate&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># P(X)改变，P(Y|X)不变</span>
+                <span class="s1">&#39;example&#39;</span><span class="p">:</span> <span class="s1">&#39;训练：新闻文章 → 部署：社交媒体&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;severity&#39;</span><span class="p">:</span> <span class="s1">&#39;medium&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;detection&#39;</span><span class="p">:</span> <span class="s1">&#39;KL divergence on input embeddings&#39;</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># P(Y)改变，P(X|Y)不变</span>
+                <span class="s1">&#39;example&#39;</span><span class="p">:</span> <span class="s1">&#39;训练：礼貌响应 → 部署：用户期望直接回答&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;severity&#39;</span><span class="p">:</span> <span class="s1">&#39;high&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;detection&#39;</span><span class="p">:</span> <span class="s1">&#39;output distribution monitoring&#39;</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;concept&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># P(Y|X)改变</span>
+                <span class="s1">&#39;example&#39;</span><span class="p">:</span> <span class="s1">&#39;新概念出现（如新技术、新事件）&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;severity&#39;</span><span class="p">:</span> <span class="s1">&#39;critical&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;detection&#39;</span><span class="p">:</span> <span class="s1">&#39;perplexity spike detection&#39;</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;temporal&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># 随时间变化</span>
+                <span class="s1">&#39;example&#39;</span><span class="p">:</span> <span class="s1">&#39;2023年训练 → 2025年部署&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;severity&#39;</span><span class="p">:</span> <span class="s1">&#39;progressive&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;detection&#39;</span><span class="p">:</span> <span class="s1">&#39;time-aware evaluation&#39;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+</code></pre></div>
+
+<p><strong>1. 输入分布偏移的细粒度分析</strong>：</p>
+<p>| 维度 | 训练分布 | 部署分布 | 影响 |</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>训练分布</th>
+<th>部署分布</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>长度</strong></td>
+<td>均值50词</td>
+<td>长尾分布(1-1000词)</td>
+<td>长文本性能退化</td>
+</tr>
+<tr>
+<td><strong>语言</strong></td>
+<td>标准书面语</td>
+<td>口语/俚语/表情</td>
+<td>理解错误增加</td>
+</tr>
+<tr>
+<td><strong>格式</strong></td>
+<td>结构化指令</td>
+<td>自由格式</td>
+<td>解析失败</td>
+</tr>
+<tr>
+<td><strong>噪声</strong></td>
+<td>清洁文本</td>
+<td>拼写错误/语法错误</td>
+<td>鲁棒性差</td>
+</tr>
+<tr>
+<td><strong>领域</strong></td>
+<td>通用领域</td>
+<td>专业领域</td>
+<td>知识缺口</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. 输出分布偏移</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">analyze_output_shift</span><span class="p">(</span><span class="n">train_outputs</span><span class="p">,</span> <span class="n">deploy_outputs</span><span class="p">):</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># 长度分布变化</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;length_shift&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;train_mean&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">train_outputs</span><span class="p">]),</span>
+        <span class="s1">&#39;deploy_mean&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">deploy_outputs</span><span class="p">]),</span>
+        <span class="s1">&#39;kl_divergence&#39;</span><span class="p">:</span> <span class="n">compute_kl</span><span class="p">(</span><span class="n">train_lengths</span><span class="p">,</span> <span class="n">deploy_lengths</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="c1"># 多样性变化</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;diversity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;train_entropy&#39;</span><span class="p">:</span> <span class="n">compute_entropy</span><span class="p">(</span><span class="n">train_outputs</span><span class="p">),</span>
+        <span class="s1">&#39;deploy_entropy&#39;</span><span class="p">:</span> <span class="n">compute_entropy</span><span class="p">(</span><span class="n">deploy_outputs</span><span class="p">),</span>
+        <span class="s1">&#39;unique_ngrams&#39;</span><span class="p">:</span> <span class="n">count_unique_ngrams</span><span class="p">(</span><span class="n">deploy_outputs</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="c1"># 模式坍塌检测</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;mode_collapse&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;repetition_rate&#39;</span><span class="p">:</span> <span class="n">detect_repetitions</span><span class="p">(</span><span class="n">deploy_outputs</span><span class="p">),</span>
+        <span class="s1">&#39;template_usage&#39;</span><span class="p">:</span> <span class="n">detect_templates</span><span class="p">(</span><span class="n">deploy_outputs</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">metrics</span>
+</code></pre></div>
+
+<p><strong>3. 错误累积的数学建模</strong>：</p>
+<p>自回归生成中的错误传播：
+$$P(\text{error at } t) = 1 - \prod_{i=0}^{t-1}(1 - \epsilon_i)$$
+其中$\epsilon_i$是位置$i$的错误率。</p>
+<p>实际测量显示：</p>
+<ul>
+<li>前10个token：错误率 &lt; 1%</li>
+<li>100个token后：错误率 ~ 5%</li>
+<li>500个token后：错误率 &gt; 15%</li>
+</ul>
+<h3 id="152">1.5.2 分布偏移的实时检测系统</h3>
+<p><strong>多层次检测框架</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">DistributionShiftDetector</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference_data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_reference_stats</span><span class="p">(</span><span class="n">reference_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detection_methods</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;statistical&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">statistical_tests</span><span class="p">,</span>
+            <span class="s1">&#39;model_based&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_based_detection</span><span class="p">,</span>
+            <span class="s1">&#39;ensemble&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble_detection</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">statistical_tests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">):</span>
+        <span class="n">tests</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># 1. Kolmogorov-Smirnov测试</span>
+        <span class="n">tests</span><span class="p">[</span><span class="s1">&#39;ks_test&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ks_2samp</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_stats</span><span class="p">[</span><span class="s1">&#39;embeddings&#39;</span><span class="p">],</span>
+            <span class="n">compute_embeddings</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 2. Maximum Mean Discrepancy (MMD)</span>
+        <span class="n">tests</span><span class="p">[</span><span class="s1">&#39;mmd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_mmd</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_stats</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">],</span>
+            <span class="n">extract_features</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 3. JS散度</span>
+        <span class="n">tests</span><span class="p">[</span><span class="s1">&#39;js_divergence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_js_divergence</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_stats</span><span class="p">[</span><span class="s1">&#39;distribution&#39;</span><span class="p">],</span>
+            <span class="n">estimate_distribution</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">tests</span>
+
+    <span class="k">def</span> <span class="nf">model_based_detection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">):</span>
+        <span class="c1"># 使用专门的OOD检测器</span>
+        <span class="n">ood_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ood_detector</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+
+        <span class="c1"># 不确定性估计</span>
+        <span class="n">uncertainty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uncertainty_estimator</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;ood_score&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ood_scores</span><span class="p">),</span>
+            <span class="s1">&#39;epistemic_uncertainty&#39;</span><span class="p">:</span> <span class="n">uncertainty</span><span class="p">[</span><span class="s1">&#39;epistemic&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;aleatoric_uncertainty&#39;</span><span class="p">:</span> <span class="n">uncertainty</span><span class="p">[</span><span class="s1">&#39;aleatoric&#39;</span><span class="p">]</span>
+        <span class="p">}</span>
+</code></pre></div>
+
+<p><strong>实时监控指标</strong>：</p>
+<div class="codehilite"><pre><span></span><code>监控仪表板：
+┌──────────────────────────────────────┐
+│ 分布偏移监控 - 实时状态              │
+├──────────────────────────────────────┤
+│ KL散度:     0.023 [████░░░░░░] 正常  │
+│ JS散度:     0.045 [██████░░░░] 警告  │
+│ MMD:        0.012 [███░░░░░░░] 正常  │
+│ 困惑度峰值: 234   [████████░░] 异常  │
+│ OOD率:      2.3%  [████░░░░░░] 正常  │
+└──────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="153">1.5.3 分布偏移的适应策略</h3>
+<p><strong>1. 测试时适应（Test-Time Adaptation）</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">TestTimeAdaptation</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adaptation_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">adapt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="c1"># 1. 熵最小化</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+        <span class="n">entropy_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">outputs</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>
+
+        <span class="c1"># 2. 伪标签自训练</span>
+        <span class="n">pseudo_labels</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">confidence</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="c1"># 只使用高置信度样本</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">confidence</span> <span class="o">&gt;</span> <span class="mf">0.9</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">pseudo_labels</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="p">)</span>
+
+        <span class="c1"># 3. 批归一化统计更新</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_bn_stats</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>2. 持续学习策略</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">continual_learning_pipeline</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    数据飞轮：收集→标注→训练→部署</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># 1. 收集困难案例</span>
+        <span class="n">hard_cases</span> <span class="o">=</span> <span class="n">collect_hard_cases</span><span class="p">(</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>  <span class="c1"># 置信度阈值</span>
+            <span class="n">max_samples</span><span class="o">=</span><span class="mi">1000</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 2. 智能标注</span>
+        <span class="n">labeled_data</span> <span class="o">=</span> <span class="n">hybrid_labeling</span><span class="p">(</span>
+            <span class="n">hard_cases</span><span class="p">,</span>
+            <span class="n">human_budget</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="c1"># 人工标注预算</span>
+            <span class="n">ai_labeler</span><span class="o">=</span><span class="n">strong_model</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 3. 增量训练</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">incremental_train</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">new_data</span><span class="o">=</span><span class="n">labeled_data</span><span class="p">,</span>
+            <span class="n">replay_buffer</span><span class="o">=</span><span class="n">sample_old_data</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+            <span class="n">regularization</span><span class="o">=</span><span class="s1">&#39;ewc&#39;</span>  <span class="c1"># 弹性权重巩固</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 4. A/B测试验证</span>
+        <span class="k">if</span> <span class="n">validate_improvement</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">baseline</span><span class="p">):</span>
+            <span class="n">deploy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>  <span class="c1"># 每日更新</span>
+</code></pre></div>
+
+<p><strong>3. 鲁棒训练策略</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">RobustTraining</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">augmentation_strategies</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_noise</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">paraphrase</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backtranslation</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">token_cutoff</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adversarial_perturbation</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">augment_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="n">augmented</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="c1"># 多策略组合</span>
+            <span class="n">aug_sample</span> <span class="o">=</span> <span class="n">sample</span>
+            <span class="k">for</span> <span class="n">strategy</span> <span class="ow">in</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">augmentation_strategies</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+                <span class="n">aug_sample</span> <span class="o">=</span> <span class="n">strategy</span><span class="p">(</span><span class="n">aug_sample</span><span class="p">)</span>
+            <span class="n">augmented</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aug_sample</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">augmented</span>
+
+    <span class="k">def</span> <span class="nf">adversarial_perturbation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="c1"># 生成对抗样本</span>
+        <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">gradient</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">embedding</span><span class="p">)</span>
+
+        <span class="c1"># FGSM扰动</span>
+        <span class="n">perturbed</span> <span class="o">=</span> <span class="n">embedding</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">*</span> <span class="n">gradient</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">perturbed</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>4. 课程学习的精细化设计</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">CurriculumLearning</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">difficulty_stages</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;week&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;tasks&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;simple_qa&#39;</span><span class="p">,</span> <span class="s1">&#39;translation&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;max_length&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span>
+                <span class="s1">&#39;complexity&#39;</span><span class="p">:</span> <span class="s1">&#39;low&#39;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;week&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s1">&#39;tasks&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;summarization&#39;</span><span class="p">,</span> <span class="s1">&#39;explanation&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;max_length&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+                <span class="s1">&#39;complexity&#39;</span><span class="p">:</span> <span class="s1">&#39;medium&#39;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;week&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                <span class="s1">&#39;tasks&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;multi_turn_dialogue&#39;</span><span class="p">,</span> <span class="s1">&#39;reasoning&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;max_length&#39;</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span>
+                <span class="s1">&#39;complexity&#39;</span><span class="p">:</span> <span class="s1">&#39;high&#39;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;week&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+                <span class="s1">&#39;tasks&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;adversarial&#39;</span><span class="p">,</span> <span class="s1">&#39;edge_cases&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;max_length&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+                <span class="s1">&#39;complexity&#39;</span><span class="p">:</span> <span class="s1">&#39;extreme&#39;</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_current_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+        <span class="n">stage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_stage</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+
+        <span class="c1"># 动态难度调整</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
+            <span class="c1"># 加速进度</span>
+            <span class="n">stage</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">stage</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">difficulty_stages</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance</span> <span class="o">&lt;</span> <span class="mf">0.7</span><span class="p">:</span>
+            <span class="c1"># 放慢进度</span>
+            <span class="n">stage</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">stage</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_from_stage</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
+</code></pre></div>
+
+<h2 id="16">1.6 理论基础深化</h2>
+<h3 id="161-bradley-terry">1.6.1 Bradley-Terry模型</h3>
+<p>人类偏好建模的理论基础：
+$$P(y_1 \succ y_2 | x) = \frac{\exp(r(x, y_1))}{\exp(r(x, y_1)) + \exp(r(x, y_2))}$$
+这个模型假设偏好概率与奖励差呈logistic关系。</p>
+<h3 id="162">1.6.2 逆强化学习视角</h3>
+<p>后训练可视为逆强化学习（IRL）问题：</p>
+<div class="codehilite"><pre><span></span><code>观察到的行为 → 推断奖励函数 → 优化策略
+
+数学形式：
+max_R  L(R|D_demo) - λ·||R||
+s.t.   π* = argmax_π E[R(s,a)]
+</code></pre></div>
+
+<h3 id="163">1.6.3 信息论视角</h3>
+<p>从信息论角度理解对齐：</p>
+<p><strong>互信息最大化</strong>：
+$$I(X; Y) = \sum_{x,y} p(x,y) \log \frac{p(x,y)}{p(x)p(y)}$$
+目标是最大化指令X和响应Y之间的互信息，同时保持Y的熵足够高。</p>
+<h2 id="_3">本章小结</h2>
+<p>本章介绍了LLM后训练的核心理论基础：</p>
+<p>📌 <strong>关键概念</strong>：</p>
+<ul>
+<li>后训练将预训练模型转化为对齐的AI助手</li>
+<li>SFT、RLHF、DPO是三种主流后训练范式</li>
+<li>对齐税是后训练中不可避免的能力权衡</li>
+<li>分布偏移是部署阶段的主要挑战</li>
+</ul>
+<p>💡 <strong>实用规则</strong>：</p>
+<ul>
+<li>SFT数据质量 &gt; 数量，通常几千条高质量数据足够</li>
+<li>RLHF的KL惩罚系数β通常设为0.01-0.1</li>
+<li>DPO相比RLHF减少50%的显存使用</li>
+<li>混合10-20%预训练数据可有效减少对齐税</li>
+</ul>
+<p>⚠️ <strong>常见陷阱</strong>：</p>
+<ul>
+<li>过度优化特定指标导致模型行为退化</li>
+<li>忽视分布偏移导致部署效果下降</li>
+<li>安全约束过强导致模型拒绝合理请求</li>
+</ul>
+<h2 id="_4">练习题</h2>
+<h3 id="_5">基础题</h3>
+<p><strong>练习 1.1：SFT损失函数理解</strong>
+给定一个批次的训练数据，包含3条样本：</p>
+<ul>
+<li>("翻译成英文：你好", "Hello")</li>
+<li>("总结这段话", "[响应]")</li>
+<li>("写一首诗", "[响应]")</li>
+</ul>
+<p>请计算第一条样本的SFT损失（假设词表大小为50000，正确token的logit为3.0，其他为0）。</p>
+<p><em>Hint: 使用交叉熵损失公式</em></p>
+<details>
+<summary>参考答案</summary>
+<p>SFT损失计算：</p>
+<ol>
+<li>对于"Hello"的每个token，计算softmax概率</li>
+<li>P(correct) = exp(3.0) / (exp(3.0) + 49999*exp(0)) ≈ 0.0004</li>
+<li>Loss = -log(0.0004) ≈ 7.82</li>
+<li>实际实现中会对所有token求平均</li>
+</ol>
+<p>关键点：</p>
+<ul>
+<li>SFT本质是最大似然估计</li>
+<li>损失与词表大小相关</li>
+<li>需要考虑序列长度归一化</li>
+</ul>
+</details>
+<p><strong>练习 1.2：KL散度计算</strong>
+两个分布P和Q在3个类别上的概率分别为：</p>
+<ul>
+<li>P: [0.5, 0.3, 0.2]</li>
+<li>Q: [0.6, 0.3, 0.1]</li>
+</ul>
+<p>计算D_KL(P||Q)。</p>
+<p><em>Hint: KL散度公式 D_KL(P||Q) = Σ P(x) log(P(x)/Q(x))</em></p>
+<details>
+<summary>参考答案</summary>
+<p>D_KL(P||Q) = 0.5<em>log(0.5/0.6) + 0.3</em>log(0.3/0.3) + 0.2<em>log(0.2/0.1)
+         = 0.5</em>(-0.182) + 0.3<em>0 + 0.2</em>0.693
+         = -0.091 + 0 + 0.139
+         = 0.048</p>
+<p>注意：</p>
+<ul>
+<li>KL散度是非对称的：D_KL(P||Q) ≠ D_KL(Q||P)</li>
+<li>当Q(x)=0但P(x)&gt;0时，KL散度为无穷大</li>
+<li>在RLHF中用于约束策略不要偏离参考策略太远</li>
+</ul>
+</details>
+<p><strong>练习 1.3：DPO vs RLHF对比</strong>
+列出DPO相比RLHF的3个优势和2个劣势。</p>
+<p><em>Hint: 考虑计算效率、实现复杂度、数据需求</em></p>
+<details>
+<summary>参考答案</summary>
+<p><strong>DPO优势</strong>：</p>
+<ol>
+<li>实现简单：不需要训练独立的奖励模型</li>
+<li>内存效率：减少约50%显存使用（无需加载奖励模型）</li>
+<li>训练稳定：避免了RL训练的不稳定性</li>
+</ol>
+<p><strong>DPO劣势</strong>：</p>
+<ol>
+<li>数据效率低：需要更多偏好数据对</li>
+<li>泛化能力弱：难以超越训练数据分布</li>
+</ol>
+<p>实践建议：</p>
+<ul>
+<li>小规模实验优先选择DPO</li>
+<li>大规模生产环境RLHF可能更优</li>
+<li>可以用DPO初始化，再用RLHF微调</li>
+</ul>
+</details>
+<h3 id="_6">挑战题</h3>
+<p><strong>练习 1.4：对齐税的量化分析</strong>
+设计一个实验来量化测量对齐税。要求：</p>
+<ol>
+<li>选择至少3个能力维度</li>
+<li>设计评估指标</li>
+<li>提出缓解策略</li>
+</ol>
+<p><em>Hint: 考虑如何公平比较预训练和后训练模型</em></p>
+<details>
+<summary>参考答案</summary>
+<p><strong>实验设计</strong>：</p>
+<ol>
+<li>
+<p><strong>能力维度选择</strong>：
+   - 事实知识：MMLU benchmark
+   - 推理能力：GSM8K数学题
+   - 代码生成：HumanEval
+   - 创造性：故事续写多样性</p>
+</li>
+<li>
+<p><strong>评估协议</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 控制变量</span>
+
+<span class="o">-</span> <span class="n">相同的解码参数</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">相同的prompt格式</span>
+<span class="o">-</span> <span class="n">多次运行取平均</span><span class="err">（</span><span class="n">减少随机性</span><span class="err">）</span>
+
+<span class="c1"># 指标计算</span>
+<span class="n">alignment_tax</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> 
+    <span class="n">score_pretrain</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">-</span> <span class="n">score_aligned</span><span class="p">[</span><span class="n">task</span><span class="p">])</span>
+</code></pre></div>
+
+<ol start="3">
+<li>
+<p><strong>缓解策略</strong>：
+   - <strong>数据混合</strong>：加入15%预训练数据
+   - <strong>分层微调</strong>：冻结底层，只调整顶层
+   - <strong>弹性权重巩固(EWC)</strong>：保护重要参数
+   - <strong>知识蒸馏</strong>：从预训练模型蒸馏</p>
+</li>
+<li>
+<p><strong>预期结果</strong>：
+   - 事实知识：-3%到-5%
+   - 推理能力：-5%到-8%
+   - 代码生成：-10%到-15%
+   - 创造性：-20%到-30%</p>
+</li>
+</ol>
+</details>
+<p><strong>练习 1.5：分布偏移的在线适应</strong>
+在部署后发现模型在处理含有表情符号的输入时性能下降40%。设计一个在线适应方案。</p>
+<p><em>Hint: 考虑数据收集、标注、训练的完整流程</em></p>
+<details>
+<summary>参考答案</summary>
+<p><strong>在线适应方案</strong>：</p>
+<ol>
+<li><strong>问题诊断</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 分析失败案例</span>
+<span class="n">failure_rate_by_feature</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;has_emoji&quot;</span><span class="p">:</span> <span class="mf">0.40</span><span class="p">,</span>
+    <span class="s2">&quot;no_emoji&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="s2">&quot;mixed_language&quot;</span><span class="p">:</span> <span class="mf">0.25</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ol start="2">
+<li>
+<p><strong>数据收集策略</strong>：
+   - 自动记录含表情符号的失败案例
+   - 主动采样：生成表情符号变体
+   - 用户反馈：收集负面评价的案例</p>
+</li>
+<li>
+<p><strong>增量训练</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 混合策略</span>
+<span class="n">new_data</span> <span class="o">=</span> <span class="n">collect_emoji_cases</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">replay_buffer</span> <span class="o">=</span> <span class="n">sample_previous</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">4000</span><span class="p">)</span>
+<span class="n">combined</span> <span class="o">=</span> <span class="n">new_data</span> <span class="o">+</span> <span class="n">replay_buffer</span>
+
+<span class="c1"># 小学习率微调</span>
+<span class="n">lr</span> <span class="o">=</span> <span class="n">original_lr</span> <span class="o">*</span> <span class="mf">0.1</span>
+<span class="n">train_steps</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># 避免过拟合</span>
+</code></pre></div>
+
+<ol start="4">
+<li>
+<p><strong>A/B测试验证</strong>：
+   - 10%流量测试新模型
+   - 监控关键指标
+   - 逐步扩大流量</p>
+</li>
+<li>
+<p><strong>长期改进</strong>：
+   - 更新训练数据分布
+   - 调整数据增强策略
+   - 考虑专门的表情符号编码器</p>
+</li>
+</ol>
+</details>
+<p><strong>练习 1.6：多目标优化的帕累托前沿</strong>
+给定3个目标：有用性(H)、无害性(S)、诚实性(T)。如何找到最优权衡点？</p>
+<p><em>Hint: 考虑多目标优化算法和实际约束</em></p>
+<details>
+<summary>参考答案</summary>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li><strong>问题形式化</strong>：
+$$\max_\theta \{ H(\theta), S(\theta), T(\theta) \}$$
+约束：各指标最低阈值</li>
+</ol>
+<ul>
+<li>H ≥ 0.8</li>
+<li>S ≥ 0.95  </li>
+<li>T ≥ 0.85</li>
+</ul>
+<ol start="2">
+<li><strong>帕累托前沿搜索</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 网格搜索权重</span>
+<span class="k">for</span> <span class="n">w_h</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">w_s</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]:</span>
+        <span class="n">w_t</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">w_h</span> <span class="o">-</span> <span class="n">w_s</span>
+        <span class="k">if</span> <span class="n">w_t</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">w_h</span><span class="o">*</span><span class="n">H</span> <span class="o">-</span> <span class="n">w_s</span><span class="o">*</span><span class="n">S</span> <span class="o">-</span> <span class="n">w_t</span><span class="o">*</span><span class="n">T</span>
+            <span class="n">train_model</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+            <span class="n">evaluate_pareto_dominance</span><span class="p">()</span>
+</code></pre></div>
+
+<ol start="3">
+<li>
+<p><strong>自适应权重调整</strong>：
+   - 根据当前性能动态调整权重
+   - 优先改进最差的指标
+   - 使用梯度手术(Gradient Surgery)避免冲突</p>
+</li>
+<li>
+<p><strong>实践建议</strong>：
+   - 先优化安全性到阈值以上
+   - 在保证安全的前提下优化有用性
+   - 诚实性通过数据质量保证
+   - 定期重新评估权重分配</p>
+</li>
+</ol>
+</details>
+<p><strong>练习 1.7：Constitutional AI的规则设计</strong>
+设计一套宪法规则(Constitutional Rules)来指导模型行为，要求覆盖安全、有用、诚实三个维度。</p>
+<p><em>Hint: 规则要具体、可执行、无歧义</em></p>
+<details>
+<summary>参考答案</summary>
+<p><strong>Constitutional Rules设计</strong>：</p>
+<ol>
+<li><strong>安全规则</strong>(优先级最高)：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">R1</span><span class="o">:</span><span class="w"> </span><span class="err">绝不协助非法活动</span>
+<span class="n">R2</span><span class="o">:</span><span class="w"> </span><span class="err">不生成可识别个人信息</span>
+<span class="n">R3</span><span class="o">:</span><span class="w"> </span><span class="err">拒绝生成仇恨或歧视内容</span>
+<span class="n">R4</span><span class="o">:</span><span class="w"> </span><span class="err">不提供自我伤害指导</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>有用性规则</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">R5</span><span class="o">:</span><span class="w"> </span><span class="err">直接回答用户问题</span>
+<span class="n">R6</span><span class="o">:</span><span class="w"> </span><span class="err">提供可执行的步骤</span>
+<span class="n">R7</span><span class="o">:</span><span class="w"> </span><span class="err">承认不确定性</span>
+<span class="n">R8</span><span class="o">:</span><span class="w"> </span><span class="err">主动澄清歧义</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>诚实性规则</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">R9</span><span class="o">:</span><span class="w"> </span><span class="err">不编造事实或引用</span>
+<span class="n">R10</span><span class="o">:</span><span class="w"> </span><span class="err">区分观点和事实</span>
+<span class="n">R11</span><span class="o">:</span><span class="w"> </span><span class="err">承认知识边界</span>
+<span class="n">R12</span><span class="o">:</span><span class="w"> </span><span class="err">纠正自己的错误</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>规则冲突解决</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">resolve_conflict</span><span class="p">(</span><span class="n">rules_triggered</span><span class="p">):</span>
+    <span class="c1"># 安全 &gt; 诚实 &gt; 有用</span>
+    <span class="n">priority</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;safety&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;honesty&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;helpful&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">rules_triggered</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">priority</span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">type</span><span class="p">])</span>
+</code></pre></div>
+
+<ol start="5">
+<li><strong>实施机制</strong>：
+   - <strong>训练时</strong>：规则作为额外的奖励信号
+   - <strong>推理时</strong>：规则作为生成约束
+   - <strong>评估时</strong>：规则违反率作为关键指标</li>
+</ol>
+</details>
+<p><strong>练习 1.8：开放性思考题</strong>
+如果你要设计下一代的后训练方法，会如何改进现有的RLHF/DPO方法？请提出至少一个创新点。</p>
+<p><em>Hint: 可以从效率、效果、可解释性等角度思考</em></p>
+<details>
+<summary>参考答案</summary>
+<p><strong>创新方向示例</strong>：</p>
+<ol>
+<li>
+<p><strong>在线偏好学习</strong>：
+   - 问题：静态偏好数据很快过时
+   - 方案：实时收集用户反馈，动态更新奖励模型
+   - 技术：增量学习 + 重要性采样</p>
+</li>
+<li>
+<p><strong>多粒度奖励建模</strong>：
+   - 问题：单一标量奖励信息不足
+   - 方案：token级、句子级、段落级多层次奖励
+   - 优势：更精细的信用分配</p>
+</li>
+<li>
+<p><strong>对比解释学习</strong>：
+   - 不仅学习"哪个更好"
+   - 还学习"为什么更好"
+   - 生成可解释的改进建议</p>
+</li>
+<li>
+<p><strong>元学习优化器</strong>：
+   - 学习如何从少量偏好数据快速适应
+   - 减少新领域的标注需求
+   - 提高样本效率</p>
+</li>
+<li>
+<p><strong>分布鲁棒优化</strong>：
+   - 显式建模最坏情况分布
+   - 提高OOD泛化能力
+   - 数学形式：
+$$\min_\theta \max_{Q \in \mathcal{P}} \mathbb{E}_{x \sim Q}[\mathcal{L}(\theta, x)]$$</p>
+</li>
+</ol>
+<p>评估标准：</p>
+<ul>
+<li>样本效率提升&gt;50%</li>
+<li>训练时间减少&gt;30%</li>
+<li>OOD性能提升&gt;20%</li>
+</ul>
+</details>
+<h2 id="gotchas">常见陷阱与错误 (Gotchas)</h2>
+<h3 id="1">1. 数据相关陷阱</h3>
+<p>⚠️ <strong>过度清洗综合征</strong></p>
+<ul>
+<li>错误：过度清洗训练数据，移除所有"不完美"样本</li>
+<li>后果：模型失去处理真实世界混乱输入的能力</li>
+<li>正确做法：保留15-20%的"噪声"数据，提高鲁棒性</li>
+</ul>
+<p>⚠️ <strong>标注者偏见放大</strong></p>
+<ul>
+<li>错误：使用单一来源或同质化的标注团队</li>
+<li>后果：模型学习并放大特定群体的偏见</li>
+<li>正确做法：多样化标注者背景，使用标注者disagreement作为信号</li>
+</ul>
+<h3 id="2">2. 训练策略陷阱</h3>
+<p>⚠️ <strong>KL惩罚系数选择</strong></p>
+<ul>
+<li>错误：使用固定的β值throughout训练</li>
+<li>后果：早期限制探索，后期退化严重</li>
+<li>正确做法：</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 动态调整</span>
+<span class="n">β</span> <span class="o">=</span> <span class="n">β_init</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">decay_rate</span> <span class="o">*</span> <span class="n">step</span><span class="p">)</span>
+<span class="c1"># 典型值：β_init=0.01, decay_rate=0.0001</span>
+</code></pre></div>
+
+<p>⚠️ <strong>奖励模型过拟合</strong></p>
+<ul>
+<li>错误：奖励模型在同分布数据上过拟合</li>
+<li>后果：策略模型学会exploit奖励模型的弱点</li>
+<li>正确做法：
+  1. 奖励模型ensemble
+  2. 定期更新奖励模型
+  3. 添加奖励不确定性估计</li>
+</ul>
+<h3 id="3">3. 评估陷阱</h3>
+<p>⚠️ <strong>评估数据污染</strong></p>
+<ul>
+<li>错误：评估集信息泄露到训练集</li>
+<li>征兆：评估指标异常高，但实际效果差</li>
+<li>检测方法：</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="c1"># N-gram重叠检测</span>
+<span class="n">contamination</span> <span class="o">=</span> <span class="n">check_ngram_overlap</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">eval_set</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">contamination</span> <span class="o">&gt;</span> <span class="mf">0.01</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">DataLeakageError</span>
+</code></pre></div>
+
+<p>⚠️ <strong>单一指标优化</strong></p>
+<ul>
+<li>错误：只优化BLEU/ROUGE等自动指标</li>
+<li>后果：Goodhart定律 - "当一个指标变成目标，它就不再是好指标"</li>
+<li>正确做法：多维度评估矩阵 + 人工评估验证</li>
+</ul>
+<h3 id="4">4. 部署陷阱</h3>
+<p>⚠️ <strong>批处理效应</strong></p>
+<ul>
+<li>错误：训练时batch_size=32，推理时batch_size=1</li>
+<li>后果：BatchNorm统计不匹配，性能下降</li>
+<li>解决：使用LayerNorm或推理时调整统计量</li>
+</ul>
+<p>⚠️ <strong>长度外推失败</strong></p>
+<ul>
+<li>错误：训练最大长度512，推理时处理2048</li>
+<li>后果：位置编码失效，生成质量崩溃</li>
+<li>解决：
+  1. 训练时包含多种长度
+  2. 使用相对位置编码
+  3. 长度warmup策略</li>
+</ul>
+<h3 id="_7">调试技巧</h3>
+<p>💡 <strong>快速诊断检查单</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">diagnose_training_issues</span><span class="p">():</span>
+    <span class="n">checks</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;gradient_norm&quot;</span><span class="p">:</span> <span class="n">check_gradient_explosion</span><span class="p">(),</span>
+        <span class="s2">&quot;loss_plateau&quot;</span><span class="p">:</span> <span class="n">check_loss_convergence</span><span class="p">(),</span>
+        <span class="s2">&quot;reward_hacking&quot;</span><span class="p">:</span> <span class="n">check_reward_gaming</span><span class="p">(),</span>
+        <span class="s2">&quot;distribution_shift&quot;</span><span class="p">:</span> <span class="n">check_kl_divergence</span><span class="p">(),</span>
+        <span class="s2">&quot;capability_drop&quot;</span><span class="p">:</span> <span class="n">run_capability_benchmarks</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">generate_diagnostic_report</span><span class="p">(</span><span class="n">checks</span><span class="p">)</span>
+</code></pre></div>
+
+<p>💡 <strong>A/B测试最佳实践</strong>：</p>
+<ol>
+<li>最小可行改进：一次只改一个变量</li>
+<li>统计显著性：至少1000个样本</li>
+<li>在线指标vs离线指标对齐</li>
+<li>设置自动回滚阈值</li>
+</ol>
+<hr />
+<p>下一章：<a href="chapter2.html">第二章：实验代码基础设施 →</a></p>
+            </article>
+            
+            <nav class="page-nav"><a href="index.html" class="nav-link prev">← LLM 后训练实验设计指南</a><a href="chapter2.html" class="nav-link next">第二章：实验代码基础设施 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

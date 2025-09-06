@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第六章：强化学习与人类反馈</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">LLM 后训练实验设计指南</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第一章：后训练基础理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第二章：实验代码基础设施</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第三章：数据工程</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第四章：纯语言任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第五章：多模态任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第六章：强化学习与人类反馈</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第七章：训练循环与迭代优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第八章：评估与基准测试</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第九章：生产部署与监控</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第十章：案例研究与最佳实践</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="_1">第六章：强化学习与人类反馈</h1>
+<p>本章深入探讨基于人类反馈的强化学习（RLHF）及其变体在大语言模型后训练中的应用。我们将从奖励模型的构建开始，详细分析PPO、DPO等主流算法的实现细节，探讨Constitutional AI等自我改进方法，并讨论在线与离线强化学习的权衡。通过本章学习，您将掌握设计和实施RLHF系统的完整方法论，理解不同算法的适用场景，以及避免常见的实验陷阱。</p>
+<h2 id="61-rlhf">6.1 RLHF的动机与核心挑战</h2>
+<h3 id="611-rlhf">6.1.1 为什么需要RLHF</h3>
+<p>监督微调（SFT）虽然能让模型学会遵循指令的基本格式，但存在几个根本性限制：</p>
+<ol>
+<li>
+<p><strong>行为模仿的局限性</strong>：SFT本质上是让模型模仿训练数据中的行为模式。即使有高质量的示范数据，模型也只能学到"如何说"，而非真正理解"为什么这样说更好"。</p>
+</li>
+<li>
+<p><strong>偏好的隐式性</strong>：人类偏好往往是隐式的、多维的，很难通过示例完全表达。比如"有帮助"这个概念，包含准确性、完整性、清晰度等多个维度，且在不同上下文中权重不同。</p>
+</li>
+<li>
+<p><strong>分布偏移问题</strong>：SFT模型在生成时会累积误差，逐渐偏离训练分布。而RLHF通过在模型自己的生成分布上训练，能更好地处理这种偏移。</p>
+</li>
+</ol>
+<h3 id="612-rlhf">6.1.2 RLHF的核心组件</h3>
+<div class="codehilite"><pre><span></span><code>    Human Preferences
+           ↓
+    ┌──────────────┐
+    │ Reward Model │ ← 偏好数据训练
+    └──────────────┘
+           ↓
+       奖励信号
+           ↓
+    ┌──────────────┐
+    │  RL Training │ ← PPO/DPO等算法
+    └──────────────┘
+           ↓
+     Aligned Model
+</code></pre></div>
+
+<p>RLHF系统包含三个核心组件：</p>
+<ol>
+<li><strong>偏好数据收集</strong>：获取人类对不同回复的相对偏好判断</li>
+<li><strong>奖励模型训练</strong>：学习将文本映射到标量奖励值</li>
+<li><strong>策略优化</strong>：使用RL算法优化语言模型以最大化期望奖励</li>
+</ol>
+<h3 id="613">6.1.3 主要挑战</h3>
+<p><strong>挑战1：奖励过拟合（Reward Hacking）</strong></p>
+<p>模型可能找到获得高奖励但实际质量差的捷径。例如：</p>
+<ul>
+<li>过度使用奖励模型偏好的特定短语</li>
+<li>生成看似完整但实际空洞的长回复</li>
+<li>利用奖励模型的盲点生成有问题的内容</li>
+</ul>
+<p><strong>挑战2：训练不稳定性</strong></p>
+<p>RLHF训练过程容易出现：</p>
+<ul>
+<li>策略崩溃：模型退化到重复简单模式</li>
+<li>奖励爆炸：优化过程失控导致奖励值异常</li>
+<li>KL散度失控：生成分布过度偏离初始模型</li>
+</ul>
+<p><strong>挑战3：评估困难</strong></p>
+<ul>
+<li>奖励值不能完全代表真实质量</li>
+<li>需要大量人工评估验证改进效果</li>
+<li>不同评估指标可能相互冲突</li>
+</ul>
+<h2 id="62">6.2 奖励模型的训练与校准</h2>
+<h3 id="621-bradley-terry">6.2.1 Bradley-Terry偏好模型</h3>
+<p>奖励模型的理论基础是Bradley-Terry模型，它假设人类选择回复A优于回复B的概率为：</p>
+<p>$$P(A \succ B) = \frac{\exp(r(A))}{\exp(r(A)) + \exp(r(B))} = \sigma(r(A) - r(B))$$
+其中$r(\cdot)$是奖励函数，$\sigma$是sigmoid函数。</p>
+<p>训练目标是最大化对数似然：
+$$\mathcal{L}_{RM} = -\mathbb{E}_{(x,y_w,y_l)\sim D}\left[\log\sigma(r_\theta(x,y_w) - r_\theta(x,y_l))\right]$$
+其中$y_w$是被偏好的回复，$y_l$是较差的回复。</p>
+<h3 id="622">6.2.2 奖励模型架构设计</h3>
+<p>典型的奖励模型架构：</p>
+<div class="codehilite"><pre><span></span><code><span class="nl">输入</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">prompt</span><span class="o">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">[</span><span class="n">response</span><span class="o">]</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="n">Transformer</span><span class="w"> </span><span class="n">Encoder</span><span class="w"> </span><span class="p">(</span><span class="n">预训练LM</span><span class="p">)</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="n">最后一个token的隐状态</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="n">Linear</span><span class="w"> </span><span class="n">Head</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">标量奖励值</span>
+</code></pre></div>
+
+<p><strong>关键设计选择：</strong></p>
+<ol>
+<li>
+<p><strong>基座模型选择</strong>：
+   - 使用与策略模型相同规模的基座（如7B对7B）
+   - 或使用更大的模型（如13B奖励模型指导7B策略）</p>
+</li>
+<li>
+<p><strong>池化策略</strong>：
+   - 最后token池化（最常用）
+   - 平均池化（对长文本更稳定）
+   - 加权池化（考虑token重要性）</p>
+</li>
+<li>
+<p><strong>归一化方案</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 每批次标准化</span>
+<span class="n">rewards</span> <span class="o">=</span> <span class="p">(</span><span class="n">rewards</span> <span class="o">-</span> <span class="n">rewards</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="n">rewards</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+<span class="c1"># 或使用运行均值/方差</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span> <span class="o">=</span> <span class="mf">0.99</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">batch_mean</span>
+</code></pre></div>
+
+<h3 id="623">6.2.3 训练技巧与过拟合预防</h3>
+<p><strong>技巧1：数据增强</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">augment_preference_data</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="n">rejected</span><span class="p">):</span>
+    <span class="c1"># 1. 顺序随机化</span>
+    <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">rejected</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># 标签翻转</span>
+
+    <span class="c1"># 2. 边际案例生成</span>
+    <span class="k">if</span> <span class="n">similarity</span><span class="p">(</span><span class="n">chosen</span><span class="p">,</span> <span class="n">rejected</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
+        <span class="c1"># 为高度相似的对添加噪声</span>
+        <span class="n">rejected</span> <span class="o">=</span> <span class="n">add_noise</span><span class="p">(</span><span class="n">rejected</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="n">rejected</span><span class="p">,</span> <span class="mi">1</span>
+</code></pre></div>
+
+<p><strong>技巧2：集成与不确定性估计</strong></p>
+<p>训练多个奖励模型并使用集成：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">EnsembleRewardModel</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">models</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="n">models</span>
+
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+        <span class="n">rewards</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">]</span>
+        <span class="n">mean_reward</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
+        <span class="n">uncertainty</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
+
+        <span class="c1"># 高不确定性时降低奖励置信度</span>
+        <span class="k">if</span> <span class="n">uncertainty</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+            <span class="n">mean_reward</span> <span class="o">*=</span> <span class="mf">0.8</span>
+
+        <span class="k">return</span> <span class="n">mean_reward</span><span class="p">,</span> <span class="n">uncertainty</span>
+</code></pre></div>
+
+<p><strong>技巧3：对抗验证</strong></p>
+<p>定期用对抗样本测试奖励模型：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">generate_adversarial_samples</span><span class="p">(</span><span class="n">reward_model</span><span class="p">,</span> <span class="n">base_model</span><span class="p">):</span>
+    <span class="c1"># 生成高奖励但质量差的样本</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;解释量子力学&quot;</span>
+
+    <span class="c1"># 策略1：重复关键词</span>
+    <span class="n">bad_response_1</span> <span class="o">=</span> <span class="s2">&quot;量子力学量子力学...&quot;</span> <span class="o">*</span> <span class="mi">100</span>
+
+    <span class="c1"># 策略2：空洞的长回复</span>
+    <span class="n">bad_response_2</span> <span class="o">=</span> <span class="n">generate_verbose_but_empty</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+
+    <span class="c1"># 检查奖励模型是否被欺骗</span>
+    <span class="k">if</span> <span class="n">reward_model</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">bad_response_1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;奖励模型对重复内容给出高分&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="624">6.2.4 校准技术</h3>
+<p><strong>温度缩放（Temperature Scaling）</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">CalibratedRewardModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_model</span> <span class="o">=</span> <span class="n">base_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">logits</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span>
+
+    <span class="k">def</span> <span class="nf">calibrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val_data</span><span class="p">):</span>
+        <span class="c1"># 在验证集上优化温度参数</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">LBFGS</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">closure</span><span class="p">():</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="n">rejected</span> <span class="ow">in</span> <span class="n">val_data</span><span class="p">:</span>
+                <span class="n">prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">chosen</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">rejected</span><span class="p">))</span> 
+                <span class="p">)</span>
+                <span class="n">loss</span> <span class="o">-=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">loss</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>期望校准误差（ECE）监控</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">compute_ece</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">bin_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_bins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ece</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">predictions</span> <span class="o">&gt;=</span> <span class="n">bin_boundaries</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;</span> \
+               <span class="p">(</span><span class="n">predictions</span> <span class="o">&lt;</span> <span class="n">bin_boundaries</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">bin_acc</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">bin_conf</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">bin_weight</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+
+            <span class="n">ece</span> <span class="o">+=</span> <span class="n">bin_weight</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">bin_acc</span> <span class="o">-</span> <span class="n">bin_conf</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ece</span>
+</code></pre></div>
+
+<h2 id="63-ppollm">6.3 PPO在LLM中的实现细节</h2>
+<h3 id="631-ppo">6.3.1 PPO算法核心</h3>
+<p>PPO（Proximal Policy Optimization）通过限制每次更新的幅度来保证训练稳定性：
+$$\mathcal{L}_{PPO} = \mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$
+其中：</p>
+<ul>
+<li>$r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ 是重要性采样比率</li>
+<li>$\hat{A}_t$ 是优势函数估计</li>
+<li>$\epsilon$ 是裁剪参数（通常0.1-0.2）</li>
+</ul>
+<h3 id="632-llm">6.3.2 LLM特定的实现细节</h3>
+<p><strong>挑战1：序列生成的信用分配</strong></p>
+<p>在LLM中，一个"动作"是生成一个token，"轨迹"是完整的回复。奖励通常只在序列末尾给出，需要合理的信用分配：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">compute_advantages</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">lam</span><span class="o">=</span><span class="mf">0.95</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    计算广义优势估计(GAE)</span>
+<span class="sd">    rewards: [batch_size, seq_len] 通常只有最后一个非零</span>
+<span class="sd">    values: [batch_size, seq_len] 价值函数预测</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">advantages</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
+    <span class="n">lastgaelam</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rewards</span><span class="p">[</span><span class="mi">0</span><span class="p">]))):</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">rewards</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">next_values</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># 终止状态</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">next_values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[:,</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">rewards</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">next_values</span> <span class="o">-</span> <span class="n">values</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span>
+        <span class="n">advantages</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">lastgaelam</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">lam</span> <span class="o">*</span> <span class="n">lastgaelam</span>
+
+    <span class="k">return</span> <span class="n">advantages</span>
+</code></pre></div>
+
+<p><strong>挑战2：KL散度约束</strong></p>
+<p>防止策略偏离太远：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">compute_kl_penalty</span><span class="p">(</span><span class="n">logprobs_new</span><span class="p">,</span> <span class="n">logprobs_ref</span><span class="p">,</span> <span class="n">kl_coef</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    计算KL散度惩罚</span>
+<span class="sd">    logprobs_new: 当前策略的对数概率</span>
+<span class="sd">    logprobs_ref: 参考策略（通常是SFT模型）的对数概率</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">kl</span> <span class="o">=</span> <span class="p">(</span><span class="n">logprobs_ref</span> <span class="o">-</span> <span class="n">logprobs_new</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># 自适应KL系数</span>
+    <span class="k">if</span> <span class="n">kl</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">target_kl</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">:</span>
+        <span class="n">kl_coef</span> <span class="o">*=</span> <span class="mf">1.5</span>  <span class="c1"># 增加惩罚</span>
+    <span class="k">elif</span> <span class="n">kl</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">target_kl</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">:</span>
+        <span class="n">kl_coef</span> <span class="o">*=</span> <span class="mf">0.5</span>  <span class="c1"># 减少惩罚</span>
+
+    <span class="k">return</span> <span class="n">kl</span> <span class="o">*</span> <span class="n">kl_coef</span>
+</code></pre></div>
+
+<h3 id="633">6.3.3 训练循环实现</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">PPOTrainer</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">policy_model</span><span class="p">,</span> <span class="n">ref_model</span><span class="p">,</span> <span class="n">reward_model</span><span class="p">,</span> 
+                 <span class="n">lr</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">kl_coef</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">policy_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="n">ref_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward</span> <span class="o">=</span> <span class="n">reward_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">AdamW</span><span class="p">(</span><span class="n">policy_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kl_coef</span> <span class="o">=</span> <span class="n">kl_coef</span>
+
+    <span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">512</span><span class="p">):</span>
+        <span class="c1"># 1. 生成回复</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">responses</span><span class="p">,</span> <span class="n">old_logprobs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_responses</span><span class="p">(</span>
+                <span class="n">prompts</span><span class="p">,</span> <span class="n">max_length</span>
+            <span class="p">)</span>
+
+            <span class="c1"># 2. 计算奖励</span>
+            <span class="n">rewards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">responses</span><span class="p">)</span>
+
+            <span class="c1"># 3. 计算参考模型的对数概率</span>
+            <span class="n">ref_logprobs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">responses</span><span class="p">)</span>
+
+        <span class="c1"># 4. 多轮PPO更新</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>  <span class="c1"># PPO epochs</span>
+            <span class="c1"># 计算当前策略的对数概率</span>
+            <span class="n">new_logprobs</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">forward_with_value</span><span class="p">(</span>
+                <span class="n">prompts</span><span class="p">,</span> <span class="n">responses</span>
+            <span class="p">)</span>
+
+            <span class="c1"># 计算优势</span>
+            <span class="n">advantages</span> <span class="o">=</span> <span class="n">compute_advantages</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+
+            <span class="c1"># PPO损失</span>
+            <span class="n">ratio</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">new_logprobs</span> <span class="o">-</span> <span class="n">old_logprobs</span><span class="p">)</span>
+            <span class="n">clipped_ratio</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">ratio</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+
+            <span class="n">policy_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span>
+                <span class="n">ratio</span> <span class="o">*</span> <span class="n">advantages</span><span class="p">,</span>
+                <span class="n">clipped_ratio</span> <span class="o">*</span> <span class="n">advantages</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+            <span class="c1"># KL惩罚</span>
+            <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">compute_kl_penalty</span><span class="p">(</span>
+                <span class="n">new_logprobs</span><span class="p">,</span> <span class="n">ref_logprobs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kl_coef</span>
+            <span class="p">)</span>
+
+            <span class="c1"># 价值函数损失</span>
+            <span class="n">value_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">rewards</span> <span class="o">+</span> <span class="n">values</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+
+            <span class="c1"># 总损失</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">policy_loss</span> <span class="o">+</span> <span class="n">kl_loss</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">value_loss</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</code></pre></div>
+
+<h3 id="634-ppo">6.3.4 PPO调试技巧</h3>
+<p><strong>技巧1：监控关键指标</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">log_ppo_metrics</span><span class="p">(</span><span class="n">info</span><span class="p">):</span>
+    <span class="c1"># 必须监控的指标</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;kl_divergence&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+        <span class="s1">&#39;clip_fraction&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ratio&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">1.2</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+        <span class="s1">&#39;approx_kl&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ratio&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s1">&#39;reward_mean&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;rewards&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+        <span class="s1">&#39;reward_std&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;rewards&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(),</span>
+        <span class="s1">&#39;value_loss&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;value_loss&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;policy_loss&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;policy_loss&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;entropy&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">],</span>  <span class="c1"># 监控探索程度</span>
+    <span class="p">}</span>
+
+    <span class="c1"># 异常检测</span>
+    <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;kl_divergence&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;KL散度过大，可能导致训练不稳定&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;clip_fraction&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.3</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;裁剪比例过高，考虑减小学习率&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">metrics</span>
+</code></pre></div>
+
+<p><strong>技巧2：渐进式训练</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">progressive_ppo_training</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">stages</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    分阶段逐步增加训练难度</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">stage</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
+        <span class="c1"># 阶段1：简单任务，大KL容忍度</span>
+        <span class="k">if</span> <span class="n">stage</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">kl_coef</span> <span class="o">=</span> <span class="mf">0.05</span>
+            <span class="n">prompts</span> <span class="o">=</span> <span class="n">get_simple_prompts</span><span class="p">()</span>
+
+        <span class="c1"># 阶段2：中等难度，标准KL</span>
+        <span class="k">elif</span> <span class="n">stage</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">kl_coef</span> <span class="o">=</span> <span class="mf">0.1</span>
+            <span class="n">prompts</span> <span class="o">=</span> <span class="n">get_medium_prompts</span><span class="p">()</span>
+
+        <span class="c1"># 阶段3：困难任务，严格KL</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">kl_coef</span> <span class="o">=</span> <span class="mf">0.2</span>
+            <span class="n">prompts</span> <span class="o">=</span> <span class="n">get_hard_prompts</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">stage_steps</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">train_step</span><span class="p">(</span><span class="n">prompts</span><span class="p">)</span>
+</code></pre></div>
+
+<h2 id="64-dpoipo">6.4 DPO与IPO的比较分析</h2>
+<h3 id="641-dpo">6.4.1 DPO的理论基础</h3>
+<p>DPO（Direct Preference Optimization）通过重新参数化，将RLHF问题转换为监督学习问题，避免了显式训练奖励模型：</p>
+<p><strong>关键洞察</strong>：最优策略可以用封闭形式表达：
+$$\pi^*(y|x) = \frac{1}{Z(x)}\pi_{ref}(y|x)\exp\left(\frac{r(x,y)}{\beta}\right)$$
+反推奖励函数：
+$$r(x,y) = \beta\log\frac{\pi^*(y|x)}{\pi_{ref}(y|x)} + \beta\log Z(x)$$
+代入Bradley-Terry模型，得到DPO损失：
+$$\mathcal{L}_{DPO} = -\mathbb{E}\left[\log\sigma\left(\beta\log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}\right)\right]$$</p>
+<h3 id="642-dpo">6.4.2 DPO实现细节</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">DPOTrainer</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ref_model</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span> <span class="o">=</span> <span class="n">ref_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">AdamW</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">5e-7</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="n">rejected</span><span class="p">):</span>
+        <span class="c1"># 计算策略模型的对数概率</span>
+        <span class="n">chosen_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span><span class="p">)</span>
+        <span class="n">rejected_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">rejected</span><span class="p">)</span>
+
+        <span class="c1"># 计算参考模型的对数概率</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">ref_chosen_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span>
+                <span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span>
+            <span class="p">)</span>
+            <span class="n">ref_rejected_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span>
+                <span class="n">prompts</span><span class="p">,</span> <span class="n">rejected</span>
+            <span class="p">)</span>
+
+        <span class="c1"># 计算对数概率比</span>
+        <span class="n">chosen_rewards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">chosen_logps</span> <span class="o">-</span> <span class="n">ref_chosen_logps</span><span class="p">)</span>
+        <span class="n">rejected_rewards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">rejected_logps</span> <span class="o">-</span> <span class="n">ref_rejected_logps</span><span class="p">)</span>
+
+        <span class="c1"># DPO损失</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">F</span><span class="o">.</span><span class="n">logsigmoid</span><span class="p">(</span><span class="n">chosen_rewards</span> <span class="o">-</span> <span class="n">rejected_rewards</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># 添加隐式奖励的监控</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">reward_accuracy</span> <span class="o">=</span> <span class="p">(</span><span class="n">chosen_rewards</span> <span class="o">&gt;</span> <span class="n">rejected_rewards</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">reward_margin</span> <span class="o">=</span> <span class="p">(</span><span class="n">chosen_rewards</span> <span class="o">-</span> <span class="n">rejected_rewards</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;reward_accuracy&#39;</span><span class="p">:</span> <span class="n">reward_accuracy</span><span class="p">,</span>
+            <span class="s1">&#39;reward_margin&#39;</span><span class="p">:</span> <span class="n">reward_margin</span><span class="p">,</span>
+            <span class="s1">&#39;chosen_rewards&#39;</span><span class="p">:</span> <span class="n">chosen_rewards</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+            <span class="s1">&#39;rejected_rewards&#39;</span><span class="p">:</span> <span class="n">rejected_rewards</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="p">}</span>
+</code></pre></div>
+
+<h3 id="643-ipo">6.4.3 IPO的改进</h3>
+<p>IPO（Identity Preference Optimization）解决了DPO的一些问题：</p>
+<ol>
+<li><strong>过拟合问题</strong>：DPO倾向于让rejected样本的似然度趋近于0</li>
+<li><strong>确定性偏好</strong>：DPO假设偏好是确定性的，忽略了标注噪声</li>
+</ol>
+<p>IPO的损失函数：
+$$\mathcal{L}_{IPO} = \mathbb{E}\left[\left(\log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)} - \frac{1}{2\beta}\right)^2\right]$$</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">IPOTrainer</span><span class="p">(</span><span class="n">DPOTrainer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="n">rejected</span><span class="p">):</span>
+        <span class="c1"># 与DPO相同的对数概率计算</span>
+        <span class="n">chosen_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span><span class="p">)</span>
+        <span class="n">rejected_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">rejected</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">ref_chosen_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span>
+                <span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span>
+            <span class="p">)</span>
+            <span class="n">ref_rejected_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span>
+                <span class="n">prompts</span><span class="p">,</span> <span class="n">rejected</span>
+            <span class="p">)</span>
+
+        <span class="c1"># IPO使用平方损失而非logistic损失</span>
+        <span class="n">log_ratio_chosen</span> <span class="o">=</span> <span class="n">chosen_logps</span> <span class="o">-</span> <span class="n">ref_chosen_logps</span>
+        <span class="n">log_ratio_rejected</span> <span class="o">=</span> <span class="n">rejected_logps</span> <span class="o">-</span> <span class="n">ref_rejected_logps</span>
+
+        <span class="c1"># IPO损失：鼓励差值为1/(2β)</span>
+        <span class="n">losses</span> <span class="o">=</span> <span class="p">(</span><span class="n">log_ratio_chosen</span> <span class="o">-</span> <span class="n">log_ratio_rejected</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">return</span> <span class="n">losses</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="p">{</span>
+            <span class="s1">&#39;log_ratio_diff&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">log_ratio_chosen</span> <span class="o">-</span> <span class="n">log_ratio_rejected</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="p">}</span>
+</code></pre></div>
+
+<h3 id="644-dpo-vs-ipo">6.4.4 DPO vs IPO实验对比</h3>
+<p><strong>实验设置对比表</strong>：</p>
+<p>| 维度 | DPO | IPO |</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>DPO</th>
+<th>IPO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>损失函数</td>
+<td>Logistic</td>
+<td>MSE</td>
+</tr>
+<tr>
+<td>β参数敏感度</td>
+<td>高</td>
+<td>中</td>
+</tr>
+<tr>
+<td>训练稳定性</td>
+<td>中</td>
+<td>高</td>
+</tr>
+<tr>
+<td>收敛速度</td>
+<td>快</td>
+<td>慢</td>
+</tr>
+<tr>
+<td>过拟合风险</td>
+<td>高</td>
+<td>低</td>
+</tr>
+<tr>
+<td>噪声鲁棒性</td>
+<td>低</td>
+<td>高</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选择指南</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">choose_optimization_method</span><span class="p">(</span><span class="n">dataset_properties</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    根据数据集特性选择DPO或IPO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dataset_properties</span><span class="p">[</span><span class="s1">&#39;annotation_agreement&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.7</span><span class="p">:</span>
+        <span class="c1"># 标注一致性低，使用IPO</span>
+        <span class="k">return</span> <span class="s1">&#39;IPO&#39;</span><span class="p">,</span> <span class="s1">&#39;标注噪声大，IPO更鲁棒&#39;</span>
+
+    <span class="k">elif</span> <span class="n">dataset_properties</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">10000</span><span class="p">:</span>
+        <span class="c1"># 数据量小，使用IPO避免过拟合</span>
+        <span class="k">return</span> <span class="s1">&#39;IPO&#39;</span><span class="p">,</span> <span class="s1">&#39;数据量小，IPO泛化更好&#39;</span>
+
+    <span class="k">elif</span> <span class="n">dataset_properties</span><span class="p">[</span><span class="s1">&#39;preference_strength&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
+        <span class="c1"># 偏好非常明确，使用DPO</span>
+        <span class="k">return</span> <span class="s1">&#39;DPO&#39;</span><span class="p">,</span> <span class="s1">&#39;偏好明确，DPO收敛快&#39;</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># 默认使用DPO</span>
+        <span class="k">return</span> <span class="s1">&#39;DPO&#39;</span><span class="p">,</span> <span class="s1">&#39;标准场景，DPO效率高&#39;</span>
+</code></pre></div>
+
+<h3 id="645">6.4.5 混合策略</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">HybridDPO_IPO</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    结合DPO和IPO优点的混合方法</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ref_model</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span> <span class="o">=</span> <span class="n">ref_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>  <span class="c1"># DPO和IPO的混合权重</span>
+
+    <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="n">rejected</span><span class="p">):</span>
+        <span class="c1"># 计算对数概率</span>
+        <span class="n">chosen_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span><span class="p">)</span>
+        <span class="n">rejected_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">rejected</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">ref_chosen_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">chosen</span><span class="p">)</span>
+            <span class="n">ref_rejected_logps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span><span class="o">.</span><span class="n">compute_logprobs</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">rejected</span><span class="p">)</span>
+
+        <span class="c1"># 对数比</span>
+        <span class="n">log_ratio_diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">chosen_logps</span> <span class="o">-</span> <span class="n">ref_chosen_logps</span><span class="p">)</span> <span class="o">-</span> \
+                        <span class="p">(</span><span class="n">rejected_logps</span> <span class="o">-</span> <span class="n">ref_rejected_logps</span><span class="p">)</span>
+
+        <span class="c1"># DPO损失</span>
+        <span class="n">dpo_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">F</span><span class="o">.</span><span class="n">logsigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="n">log_ratio_diff</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># IPO损失</span>
+        <span class="n">ipo_loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">log_ratio_diff</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">))</span><span class="o">**</span><span class="mf">2.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># 混合损失</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">dpo_loss</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">ipo_loss</span>
+
+        <span class="k">return</span> <span class="n">loss</span>
+</code></pre></div>
+
+<h2 id="65-constitutional-ai">6.5 Constitutional AI与自我改进</h2>
+<h3 id="651-constitutional-ai">6.5.1 Constitutional AI原理</h3>
+<p>Constitutional AI（CAI）使用一组原则来指导模型的自我改进，减少对人类标注的依赖：</p>
+<div class="codehilite"><pre><span></span><code>原始回复 → AI自我批判 → 修订回复 → AI偏好判断 → 训练
+</code></pre></div>
+
+<p>核心组件：</p>
+<ol>
+<li><strong>宪法原则</strong>：定义模型应遵循的规则</li>
+<li><strong>自我批判</strong>：模型评估自己的输出</li>
+<li><strong>自我修订</strong>：基于批判改进回复</li>
+<li><strong>自我偏好</strong>：生成偏好数据用于训练</li>
+</ol>
+<h3 id="652-constitutional-ai">6.5.2 实现Constitutional AI</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">ConstitutionalAI</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">principles</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">principles</span> <span class="o">=</span> <span class="n">principles</span>
+
+    <span class="k">def</span> <span class="nf">critique_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        使用宪法原则批判回复</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">critiques</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">principle</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">principles</span><span class="p">:</span>
+            <span class="n">critique_prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            原则：</span><span class="si">{</span><span class="n">principle</span><span class="si">}</span>
+<span class="s2">            用户问题：</span><span class="si">{</span><span class="n">prompt</span><span class="si">}</span>
+<span class="s2">            助手回复：</span><span class="si">{</span><span class="n">response</span><span class="si">}</span>
+
+<span class="s2">            这个回复是否违反了上述原则？如果是，请说明如何改进。</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+
+            <span class="n">critique</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">critique_prompt</span><span class="p">)</span>
+            <span class="n">critiques</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">critique</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">critiques</span>
+
+    <span class="k">def</span> <span class="nf">revise_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">,</span> <span class="n">critiques</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        基于批判修订回复</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">revision_prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        原始问题：</span><span class="si">{</span><span class="n">prompt</span><span class="si">}</span>
+<span class="s2">        原始回复：</span><span class="si">{</span><span class="n">response</span><span class="si">}</span>
+
+<span class="s2">        批判意见：</span>
+<span class="s2">        </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">critiques</span><span class="p">)</span><span class="si">}</span>
+
+<span class="s2">        请根据批判意见修订回复，使其更好地遵循原则。</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">revised</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">revision_prompt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">revised</span>
+
+    <span class="k">def</span> <span class="nf">generate_preference_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        生成自我标注的偏好数据</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">preference_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">prompt</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">:</span>
+            <span class="c1"># 生成初始回复</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+
+            <span class="c1"># 自我批判</span>
+            <span class="n">critiques</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">critique_response</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+
+            <span class="c1"># 如果有批判，生成修订版本</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">critiques</span><span class="p">):</span>
+                <span class="n">revised</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">revise_response</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">,</span> <span class="n">critiques</span><span class="p">)</span>
+
+                <span class="c1"># 创建偏好对（修订版本 &gt; 原始版本）</span>
+                <span class="n">preference_data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;prompt&#39;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">,</span>
+                    <span class="s1">&#39;chosen&#39;</span><span class="p">:</span> <span class="n">revised</span><span class="p">,</span>
+                    <span class="s1">&#39;rejected&#39;</span><span class="p">:</span> <span class="n">response</span>
+                <span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">preference_data</span>
+</code></pre></div>
+
+<h3 id="653-rlaif">6.5.3 RLAIF实践</h3>
+<p>RLAIF（RL from AI Feedback）完整流程：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">RLAIFTrainer</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">critic_model</span><span class="p">,</span> <span class="n">principles</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">critic</span> <span class="o">=</span> <span class="n">critic_model</span>  <span class="c1"># 可以是同一个模型</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">principles</span> <span class="o">=</span> <span class="n">principles</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dpo_trainer</span> <span class="o">=</span> <span class="n">DPOTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">train_iteration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">,</span> <span class="n">n_iterations</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">iteration</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iterations</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RLAIF迭代 </span><span class="si">{</span><span class="n">iteration</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># 1. 生成回复</span>
+            <span class="n">responses</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">prompt</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+                <span class="n">responses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+            <span class="c1"># 2. AI评分和排序</span>
+            <span class="n">scored_responses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_responses</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">responses</span><span class="p">)</span>
+
+            <span class="c1"># 3. 构建偏好数据</span>
+            <span class="n">preference_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_preferences</span><span class="p">(</span><span class="n">scored_responses</span><span class="p">)</span>
+
+            <span class="c1"># 4. DPO训练</span>
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">preference_data</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dpo_trainer</span><span class="o">.</span><span class="n">train_step</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+            <span class="c1"># 5. 评估改进</span>
+            <span class="n">improvement</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_improvement</span><span class="p">(</span><span class="n">prompts</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;改进幅度: </span><span class="si">{</span><span class="n">improvement</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">improvement</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">:</span>  <span class="c1"># 收敛</span>
+                <span class="k">break</span>
+
+    <span class="k">def</span> <span class="nf">score_responses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">,</span> <span class="n">responses</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        使用AI评分器给回复打分</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">response</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">responses</span><span class="p">):</span>
+            <span class="n">score_prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            根据以下原则评分（1-10分）：</span>
+<span class="s2">            </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">principles</span><span class="si">}</span>
+
+<span class="s2">            问题：</span><span class="si">{</span><span class="n">prompt</span><span class="si">}</span>
+<span class="s2">            回复：</span><span class="si">{</span><span class="n">response</span><span class="si">}</span>
+
+<span class="s2">            评分（只返回数字）：</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+
+            <span class="n">score</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">critic</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">score_prompt</span><span class="p">))</span>
+            <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">prompts</span><span class="p">,</span> <span class="n">responses</span><span class="p">,</span> <span class="n">scores</span><span class="p">))</span>
+</code></pre></div>
+
+<h3 id="654">6.5.4 原则设计最佳实践</h3>
+<p><strong>原则层次结构</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">CONSTITUTIONAL_PRINCIPLES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># 第一层：安全性原则（最高优先级）</span>
+    <span class="s1">&#39;safety&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;不提供可能造成伤害的信息&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;避免生成歧视性内容&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;保护用户隐私&quot;</span>
+    <span class="p">],</span>
+
+    <span class="c1"># 第二层：有用性原则</span>
+    <span class="s1">&#39;helpfulness&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;提供准确的信息&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;回答要切中要点&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;承认不确定性&quot;</span>
+    <span class="p">],</span>
+
+    <span class="c1"># 第三层：风格原则</span>
+    <span class="s1">&#39;style&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;保持专业语气&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;避免过度自信&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;适当使用例子&quot;</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+
+<span class="k">def</span> <span class="nf">apply_principles_hierarchically</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">principles</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    分层应用原则，高优先级原则可覆盖低优先级</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;safety&#39;</span><span class="p">,</span> <span class="s1">&#39;helpfulness&#39;</span><span class="p">,</span> <span class="s1">&#39;style&#39;</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">principle</span> <span class="ow">in</span> <span class="n">principles</span><span class="p">[</span><span class="n">level</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">violates_principle</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">principle</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="s1">&#39;safety&#39;</span><span class="p">:</span>
+                    <span class="c1"># 安全问题必须修正</span>
+                    <span class="k">return</span> <span class="n">revise_for_safety</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">principle</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># 其他问题尝试修正但不强制</span>
+                    <span class="n">response</span> <span class="o">=</span> <span class="n">soft_revise</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">principle</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">response</span>
+</code></pre></div>
+
+<h2 id="66">6.6 在线与离线强化学习的权衡</h2>
+<h3 id="661-vsrl">6.6.1 在线vs离线RL的本质区别</h3>
+<p><strong>在线RL</strong>：模型在训练过程中不断与环境交互，生成新数据并立即从中学习。</p>
+<p><strong>离线RL</strong>：仅使用预先收集的固定数据集进行训练，不与环境实时交互。</p>
+<div class="codehilite"><pre><span></span><code>在线RL流程：
+策略 → 生成 → 奖励 → 更新 → 策略（循环）
+
+离线RL流程：
+固定数据集 → 训练 → 策略（一次性）
+</code></pre></div>
+
+<h3 id="662-rl">6.6.2 在线RL的优势与挑战</h3>
+<p><strong>优势</strong>：</p>
+<ol>
+<li><strong>探索能力强</strong>：能主动探索高奖励区域</li>
+<li><strong>适应性好</strong>：快速适应奖励函数变化</li>
+<li><strong>无分布偏移</strong>：在自己的生成分布上训练</li>
+</ol>
+<p><strong>挑战</strong>：</p>
+<ol>
+<li><strong>计算成本高</strong>：需要实时生成和评估</li>
+<li><strong>不稳定性</strong>：容易出现策略崩溃</li>
+<li><strong>安全风险</strong>：可能生成有害内容</li>
+</ol>
+<p><strong>在线PPO实现</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">OnlinePPO</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">reward_model</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">policy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_model</span> <span class="o">=</span> <span class="n">reward_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span> <span class="o">=</span> <span class="n">buffer_size</span>
+
+    <span class="k">def</span> <span class="nf">collect_trajectories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        实时收集轨迹数据</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trajectories</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">prompt</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">):</span>
+                <span class="c1"># 在线生成</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+
+                <span class="c1"># 实时计算奖励</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_model</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+
+                <span class="c1"># 计算优势（需要价值函数）</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">value_head</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+
+                <span class="n">trajectories</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;prompt&#39;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">,</span>
+                    <span class="s1">&#39;response&#39;</span><span class="p">:</span> <span class="n">response</span><span class="p">,</span>
+                    <span class="s1">&#39;reward&#39;</span><span class="p">:</span> <span class="n">reward</span><span class="p">,</span>
+                    <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+                    <span class="s1">&#39;logprobs&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">get_logprobs</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+                <span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">trajectories</span>
+
+    <span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">):</span>
+        <span class="c1"># 收集新数据</span>
+        <span class="n">new_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_trajectories</span><span class="p">(</span><span class="n">prompts</span><span class="p">)</span>
+
+        <span class="c1"># 更新缓冲区（FIFO）</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span><span class="p">:]</span>
+
+        <span class="c1"># 在缓冲区数据上训练</span>
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_batches</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">):</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ppo_loss</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="663-rl">6.6.3 离线RL的优势与挑战</h3>
+<p><strong>优势</strong>：</p>
+<ol>
+<li><strong>安全可控</strong>：不会生成未见过的有害内容</li>
+<li><strong>计算高效</strong>：数据可预处理和缓存</li>
+<li><strong>可重复性</strong>：相同数据得到相同结果</li>
+</ol>
+<p><strong>挑战</strong>：</p>
+<ol>
+<li><strong>分布偏移</strong>：训练和部署分布不匹配</li>
+<li><strong>数据质量依赖</strong>：完全依赖历史数据质量</li>
+<li><strong>保守性</strong>：难以超越数据集中的最佳表现</li>
+</ol>
+<p><strong>离线DPO实现</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">OfflineDPO</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ref_model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_model</span> <span class="o">=</span> <span class="n">ref_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>  <span class="c1"># 预收集的偏好数据</span>
+
+    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        纯离线训练，不生成新数据</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_epochs</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">:</span>
+                <span class="c1"># 使用固定数据集</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_dpo_loss</span><span class="p">(</span>
+                    <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;prompts&#39;</span><span class="p">],</span>
+                    <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;chosen&#39;</span><span class="p">],</span>
+                    <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;rejected&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+            <span class="c1"># 离线评估</span>
+            <span class="n">val_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_offline</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: Val Loss = </span><span class="si">{</span><span class="n">val_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute_importance_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        计算重要性权重以缓解分布偏移</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="c1"># 当前策略的概率</span>
+            <span class="n">current_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_probs</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;prompts&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;responses&#39;</span><span class="p">])</span>
+
+            <span class="c1"># 数据收集时的概率（如果有）</span>
+            <span class="n">old_probs</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;old_probs&#39;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">current_probs</span><span class="p">))</span>
+
+            <span class="c1"># 重要性权重</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">current_probs</span> <span class="o">/</span> <span class="p">(</span><span class="n">old_probs</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+            <span class="c1"># 裁剪防止权重爆炸</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">weights</span>
+</code></pre></div>
+
+<h3 id="664">6.6.4 混合策略：半在线学习</h3>
+<p>结合两者优势的实用方案：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">SemiOnlineRL</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">offline_data</span><span class="p">,</span> <span class="n">online_ratio</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offline_data</span> <span class="o">=</span> <span class="n">offline_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">=</span> <span class="n">online_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">online_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompts</span><span class="p">):</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">prompts</span><span class="p">)</span>
+
+        <span class="c1"># 1. 离线数据采样</span>
+        <span class="n">offline_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span><span class="p">))</span>
+        <span class="n">offline_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_offline</span><span class="p">(</span><span class="n">offline_size</span><span class="p">)</span>
+
+        <span class="c1"># 2. 在线数据生成（少量）</span>
+        <span class="n">online_size</span> <span class="o">=</span> <span class="n">batch_size</span> <span class="o">-</span> <span class="n">offline_size</span>
+        <span class="n">online_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_online</span><span class="p">(</span>
+            <span class="n">prompts</span><span class="p">[:</span><span class="n">online_size</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 3. 混合训练</span>
+        <span class="n">combined_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine_batches</span><span class="p">(</span>
+            <span class="n">offline_batch</span><span class="p">,</span> 
+            <span class="n">online_batch</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 4. 加权更新</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weighted_loss</span><span class="p">(</span><span class="n">combined_batch</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">weighted_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        对在线和离线数据使用不同权重</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;online&#39;</span><span class="p">:</span>
+                <span class="c1"># 在线数据权重更高（更可信）</span>
+                <span class="n">weight</span> <span class="o">=</span> <span class="mf">1.5</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># 离线数据权重较低</span>
+                <span class="n">weight</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_loss</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">*</span> <span class="n">weight</span>
+            <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</code></pre></div>
+
+<h3 id="665">6.6.5 实用决策框架</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">choose_rl_strategy</span><span class="p">(</span><span class="n">constraints</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    根据实际约束选择RL策略</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">constraints</span><span class="p">[</span><span class="s1">&#39;safety_critical&#39;</span><span class="p">]:</span>
+        <span class="c1"># 安全要求高，使用纯离线</span>
+        <span class="k">return</span> <span class="s1">&#39;offline&#39;</span><span class="p">,</span> <span class="s2">&quot;安全第一，避免未知风险&quot;</span>
+
+    <span class="k">elif</span> <span class="n">constraints</span><span class="p">[</span><span class="s1">&#39;compute_budget&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>  <span class="c1"># GPU小时</span>
+        <span class="c1"># 计算预算有限，使用离线</span>
+        <span class="k">return</span> <span class="s1">&#39;offline&#39;</span><span class="p">,</span> <span class="s2">&quot;计算资源受限&quot;</span>
+
+    <span class="k">elif</span> <span class="n">constraints</span><span class="p">[</span><span class="s1">&#39;data_quality&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.7</span><span class="p">:</span>
+        <span class="c1"># 数据质量差，需要在线探索</span>
+        <span class="k">return</span> <span class="s1">&#39;online&#39;</span><span class="p">,</span> <span class="s2">&quot;数据质量不足，需要主动改进&quot;</span>
+
+    <span class="k">elif</span> <span class="n">constraints</span><span class="p">[</span><span class="s1">&#39;deployment_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;production&#39;</span><span class="p">:</span>
+        <span class="c1"># 生产环境，使用半在线</span>
+        <span class="k">return</span> <span class="s1">&#39;semi_online&#39;</span><span class="p">,</span> <span class="s2">&quot;平衡安全性和性能&quot;</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># 研究环境，使用在线</span>
+        <span class="k">return</span> <span class="s1">&#39;online&#39;</span><span class="p">,</span> <span class="s2">&quot;追求最佳性能&quot;</span>
+</code></pre></div>
+
+<h3 id="666">6.6.6 分布偏移的缓解技术</h3>
+<p><strong>技术1：保守正则化</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">conservative_regularization</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">ref_policy</span><span class="p">,</span> <span class="n">responses</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    CQL-style保守正则化，防止离线RL过度乐观</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># 计算OOD（out-of-distribution）动作的Q值</span>
+    <span class="n">ood_responses</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>  <span class="c1"># 高温采样OOD</span>
+    <span class="n">ood_q_values</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">q_function</span><span class="p">(</span><span class="n">ood_responses</span><span class="p">)</span>
+
+    <span class="c1"># 惩罚OOD动作的高Q值</span>
+    <span class="n">conservative_loss</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">ood_q_values</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">conservative_loss</span>
+</code></pre></div>
+
+<p><strong>技术2：分布感知采样</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">DistributionAwareSampler</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offline_data</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offline_data</span> <span class="o">=</span> <span class="n">offline_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="c1"># 预计算数据分布特征</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_embeddings</span><span class="p">(</span><span class="n">offline_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distribution_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_stats</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_embeddings</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sample_in_distribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        优先采样分布内的数据</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span> <span class="o">*</span> <span class="mi">5</span><span class="p">):</span>  <span class="c1"># 过采样</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">()</span>
+            <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+            <span class="c1"># 计算与训练分布的距离</span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_distance</span><span class="p">(</span>
+                <span class="n">embedding</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">distribution_stats</span>
+            <span class="p">)</span>
+
+            <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">response</span><span class="p">,</span> <span class="n">distance</span><span class="p">))</span>
+
+        <span class="c1"># 选择最接近训练分布的样本</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">[:</span><span class="n">n_samples</span><span class="p">]]</span>
+</code></pre></div>
+
+<h2 id="_2">本章小结</h2>
+<p>本章深入探讨了基于人类反馈的强化学习（RLHF）及其变体在大语言模型后训练中的应用。我们学习了：</p>
+<h3 id="_3">核心概念回顾</h3>
+<ol>
+<li>
+<p><strong>RLHF的三大支柱</strong>：
+   - 奖励模型：将人类偏好转化为可优化的标量信号
+   - 策略优化：通过PPO等算法最大化期望奖励
+   - KL约束：防止模型偏离初始分布过远</p>
+</li>
+<li>
+<p><strong>关键算法对比</strong>：
+   - <strong>PPO</strong>：稳定但计算密集，需要显式奖励模型
+   - <strong>DPO</strong>：直接优化，训练高效但可能过拟合
+   - <strong>IPO</strong>：更鲁棒但收敛较慢
+   - <strong>Constitutional AI</strong>：自我改进，减少人工标注</p>
+</li>
+<li>
+<p><strong>实用权衡</strong>：
+   - 在线RL：探索能力强但成本高
+   - 离线RL：安全高效但受限于数据质量
+   - 混合策略：平衡探索与安全性</p>
+</li>
+</ol>
+<h3 id="_4">关键公式汇总</h3>
+<p><strong>Bradley-Terry偏好模型</strong>：
+$$P(A \succ B) = \sigma(r(A) - r(B))$$
+<strong>PPO目标函数</strong>：
+$$\mathcal{L}_{PPO} = \min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)$$
+<strong>DPO损失函数</strong>：
+$$\mathcal{L}_{DPO} = -\log\sigma\left(\beta\log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}\right)$$</p>
+<h3 id="_5">实践要点</h3>
+<ol>
+<li><strong>奖励模型训练</strong>：使用集成和校准技术提高鲁棒性</li>
+<li><strong>PPO调优</strong>：监控KL散度和裁剪比例，采用渐进式训练</li>
+<li><strong>DPO/IPO选择</strong>：根据数据质量和标注一致性选择</li>
+<li><strong>在线/离线决策</strong>：基于安全需求和计算预算权衡</li>
+</ol>
+<h2 id="_6">练习题</h2>
+<h3 id="_7">基础题（理解概念）</h3>
+<p><strong>练习6.1：奖励模型设计</strong>
+设计一个奖励模型架构，用于评估代码生成任务的质量。考虑如何处理语法正确性、功能完整性和代码风格等多个维度。</p>
+<details>
+<summary>提示（Hint）</summary>
+<p>考虑多头架构，每个头负责一个质量维度，最终加权组合。</p>
+</details>
+<details>
+<summary>参考答案</summary>
+<p>奖励模型应包含：</p>
+<ol>
+<li>语法检查头：使用AST解析验证语法正确性（二值输出）</li>
+<li>功能评估头：通过测试用例执行评估功能完整性（0-1连续值）</li>
+<li>风格评分头：基于代码规范检查工具的输出（0-1连续值）</li>
+<li>效率评估头：分析时间/空间复杂度（可选）</li>
+</ol>
+<p>最终奖励 = w1×语法 + w2×功能 + w3×风格 + w4×效率</p>
+<p>其中权重可以根据任务需求调整，如生产代码更重视功能和语法，教学代码更重视风格。</p>
+</details>
+<p><strong>练习6.2：KL散度计算</strong>
+给定参考分布 $p_{ref} = [0.1, 0.2, 0.3, 0.4]$ 和当前分布 $p_{\theta} = [0.15, 0.25, 0.35, 0.25]$，计算KL散度 $D_{KL}(p_{\theta} || p_{ref})$。</p>
+<details>
+<summary>提示（Hint）</summary>
+<p>使用公式：$D_{KL}(p||q) = \sum_i p_i \log(p_i/q_i)$</p>
+</details>
+<details>
+<summary>参考答案</summary>
+<p>$D_{KL}(p_{\theta} || p_{ref}) = \sum_i p_{\theta,i} \log(p_{\theta,i}/p_{ref,i})$</p>
+<p>= 0.15×log(0.15/0.1) + 0.25×log(0.25/0.2) + 0.35×log(0.35/0.3) + 0.25×log(0.25/0.4)
+= 0.15×0.405 + 0.25×0.223 + 0.35×0.155 + 0.25×(-0.470)
+= 0.061 + 0.056 + 0.054 - 0.118
+= 0.053</p>
+<p>KL散度约为0.053，表示两个分布相对接近。</p>
+</details>
+<p><strong>练习6.3：DPO vs PPO场景选择</strong>
+列举三个适合使用DPO而非PPO的具体场景，并说明原因。</p>
+<details>
+<summary>提示（Hint）</summary>
+<p>考虑计算资源、数据可用性和训练稳定性等因素。</p>
+</details>
+<details>
+<summary>参考答案</summary>
+<ol>
+<li>
+<p><strong>学术研究环境</strong>：计算资源有限，DPO不需要训练独立的奖励模型，节省GPU内存和训练时间。</p>
+</li>
+<li>
+<p><strong>高质量偏好数据充足</strong>：已有大量人工标注的偏好对，且标注一致性高（&gt;85%），DPO可以直接利用这些数据。</p>
+</li>
+<li>
+<p><strong>快速原型验证</strong>：需要快速验证对齐方法的效果，DPO实现简单，收敛快，适合快速迭代。</p>
+</li>
+</ol>
+<p>不适合DPO的场景：标注噪声大、需要在线探索、安全性要求极高的场景。</p>
+</details>
+<h3 id="_8">挑战题（深入思考）</h3>
+<p><strong>练习6.4：奖励过拟合检测</strong>
+设计一个方法来自动检测RLHF训练过程中的奖励过拟合（reward hacking）现象。</p>
+<details>
+<summary>提示（Hint）</summary>
+<p>考虑监控多个指标的相关性变化，如奖励值与人类评估的相关性。</p>
+</details>
+<details>
+<summary>参考答案</summary>
+<p>奖励过拟合检测系统：</p>
+<ol>
+<li>
+<p><strong>指标监控</strong>：
+   - 奖励值趋势：如果奖励持续上升但验证集性能下降
+   - 响应长度分布：突然变长可能表示在利用长度偏好
+   - 词汇多样性：下降表示模型在重复特定模式</p>
+</li>
+<li>
+<p><strong>对抗测试</strong>：
+   - 定期生成对抗样本，检查奖励模型是否给予不合理高分
+   - 使用简单的重复模式测试，如"非常好非常好..."</p>
+</li>
+<li>
+<p><strong>人类评估对比</strong>：
+   - 定期抽样进行人类评估
+   - 计算奖励值与人类评分的Spearman相关系数
+   - 相关性下降是过拟合的强信号</p>
+</li>
+<li>
+<p><strong>自动化检测规则</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="p">(</span><span class="n">reward_increase</span> <span class="o">&gt;</span> <span class="mi">50</span><span class="o">%</span> <span class="ow">and</span> 
+    <span class="n">human_eval_correlation</span> <span class="o">&lt;</span> <span class="mf">0.5</span> <span class="ow">and</span>
+    <span class="n">response_length_std</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">initial_std</span><span class="p">):</span>
+    <span class="n">trigger_alert</span><span class="p">(</span><span class="s2">&quot;可能的奖励过拟合&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+</details>
+<p><strong>练习6.5：Constitutional AI原则设计</strong>
+为一个医疗咨询AI助手设计一套宪法原则层次结构，确保安全性、准确性和有用性的平衡。</p>
+<details>
+<summary>提示（Hint）</summary>
+<p>考虑医疗领域的特殊性：错误信息的严重后果、法律责任、患者隐私等。</p>
+</details>
+<details>
+<summary>参考答案</summary>
+<p>医疗AI宪法原则层次：</p>
+<p><strong>第一层：安全性（不可违反）</strong></p>
+<ol>
+<li>绝不替代专业医疗诊断</li>
+<li>危急情况必须建议立即就医</li>
+<li>不推荐未经验证的治疗方法</li>
+<li>严格保护患者隐私信息</li>
+</ol>
+<p><strong>第二层：准确性（强约束）</strong></p>
+<ol>
+<li>引用信息必须来自可靠医学来源</li>
+<li>明确区分常见情况和需要专业评估的情况</li>
+<li>承认医学不确定性，避免绝对化表述</li>
+<li>纠正明显的医学误解</li>
+</ol>
+<p><strong>第三层：有用性（软约束）</strong></p>
+<ol>
+<li>提供易懂的医学知识解释</li>
+<li>给出合理的健康生活建议</li>
+<li>帮助准备就医问题清单</li>
+<li>提供情绪支持和安慰</li>
+</ol>
+<p><strong>实施策略</strong>：</p>
+<ul>
+<li>第一层违反 → 立即拒绝输出</li>
+<li>第二层违反 → 强制修改直到满足</li>
+<li>第三层违反 → 尝试改进但可接受</li>
+</ul>
+</details>
+<p><strong>练习6.6：在线离线RL混合策略</strong>
+设计一个自适应的在线/离线RL混合训练策略，能够根据训练过程中的表现动态调整在线数据的比例。</p>
+<details>
+<summary>提示（Hint）</summary>
+<p>考虑使用验证集性能、KL散度、计算成本等信号来调整混合比例。</p>
+</details>
+<details>
+<summary>参考答案</summary>
+<p>自适应混合策略：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">AdaptiveMixedRL</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># 初始10%在线</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_history</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">adjust_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
+        <span class="c1"># 1. 性能改进率</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">performance_history</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">recent_improvement</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">performance_history</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]))</span>
+
+            <span class="k">if</span> <span class="n">recent_improvement</span> <span class="o">&lt;</span> <span class="mf">0.001</span><span class="p">:</span>  <span class="c1"># 性能停滞</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">)</span>
+
+        <span class="c1"># 2. KL散度监控</span>
+        <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;kl_divergence&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">:</span>  <span class="c1"># KL过大</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">)</span>
+
+        <span class="c1"># 3. 计算预算约束</span>
+        <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;compute_usage&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>  <span class="c1"># 接近预算上限</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="c1"># 4. 数据分布匹配度</span>
+        <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;distribution_shift&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.3</span><span class="p">:</span>  <span class="c1"># 分布偏移严重</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_ratio</span>
+</code></pre></div>
+
+<p><strong>动态调整规则</strong>：</p>
+<ol>
+<li>初始阶段（前1000步）：纯离线，建立基线</li>
+<li>探索阶段（1000-5000步）：逐步增加在线比例</li>
+<li>稳定阶段（5000+步）：根据性能自适应调整</li>
+<li>异常处理：检测到训练不稳定时快速降低在线比例</li>
+</ol>
+</details>
+<p><strong>练习6.7：多目标RLHF优化</strong>
+设计一个方法来同时优化多个可能冲突的目标（如有用性、安全性、创造性），并处理它们之间的权衡。</p>
+<details>
+<summary>提示（Hint）</summary>
+<p>考虑Pareto优化、多奖励模型、条件训练等方法。</p>
+</details>
+<details>
+<summary>参考答案</summary>
+<p>多目标RLHF框架：</p>
+<ol>
+<li><strong>多奖励模型架构</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">MultiObjectiveRLHF</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">objectives</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_models</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;helpfulness&#39;</span><span class="p">:</span> <span class="n">RewardModel</span><span class="p">(),</span>
+            <span class="s1">&#39;safety&#39;</span><span class="p">:</span> <span class="n">RewardModel</span><span class="p">(),</span>
+            <span class="s1">&#39;creativity&#39;</span><span class="p">:</span> <span class="n">RewardModel</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;helpfulness&#39;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s1">&#39;safety&#39;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s1">&#39;creativity&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">compute_pareto_rewards</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">responses</span><span class="p">):</span>
+        <span class="n">rewards</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">obj</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_models</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">rewards</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">responses</span><span class="p">)</span>
+
+        <span class="c1"># 计算Pareto前沿</span>
+        <span class="n">pareto_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pareto_optimal</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">pareto_mask</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>动态权重调整</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">adjust_weights_by_context</span><span class="p">(</span><span class="n">prompt_type</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">prompt_type</span> <span class="o">==</span> <span class="s1">&#39;medical&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;safety&#39;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s1">&#39;helpfulness&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s1">&#39;creativity&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">prompt_type</span> <span class="o">==</span> <span class="s1">&#39;creative_writing&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;creativity&#39;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span> <span class="s1">&#39;helpfulness&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s1">&#39;safety&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;helpfulness&#39;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s1">&#39;safety&#39;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s1">&#39;creativity&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">}</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>条件奖励函数</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">conditional_reward</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">objectives</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+    <span class="n">base_rewards</span> <span class="o">=</span> <span class="n">compute_base_rewards</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">objectives</span><span class="p">)</span>
+
+    <span class="c1"># 硬约束：安全性低于阈值时严重惩罚</span>
+    <span class="k">if</span> <span class="n">base_rewards</span><span class="p">[</span><span class="s1">&#39;safety&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mf">10.0</span>
+
+    <span class="c1"># 软约束：根据上下文加权</span>
+    <span class="n">weighted_reward</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+        <span class="n">base_rewards</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">*</span> <span class="n">weight</span> 
+        <span class="k">for</span> <span class="n">obj</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">context_weights</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">weighted_reward</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>多策略集成</strong>：
+训练多个专门化的策略，推理时根据需求选择或插值。</li>
+</ol>
+</details>
+<h2 id="_9">常见陷阱与错误</h2>
+<h3 id="1">1. 奖励模型过拟合</h3>
+<p><strong>错误表现</strong>：</p>
+<ul>
+<li>奖励值持续上升但实际质量下降</li>
+<li>模型输出变得单一化（如总是生成极长回复）</li>
+</ul>
+<p><strong>调试方法</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 检测奖励过拟合</span>
+<span class="k">def</span> <span class="nf">detect_reward_overfitting</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">reward_model</span><span class="p">,</span> <span class="n">test_prompts</span><span class="p">):</span>
+    <span class="n">responses</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">test_prompts</span><span class="p">)</span>
+    <span class="n">rewards</span> <span class="o">=</span> <span class="n">reward_model</span><span class="p">(</span><span class="n">responses</span><span class="p">)</span>
+
+    <span class="c1"># 检查1：奖励分布是否异常集中</span>
+    <span class="k">if</span> <span class="n">rewards</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;警告：奖励分布过于集中&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 检查2：响应长度是否异常</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">responses</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lengths</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">expected_length</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;警告：响应长度异常&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 检查3：词汇多样性</span>
+    <span class="n">vocab_diversity</span> <span class="o">=</span> <span class="n">compute_vocab_diversity</span><span class="p">(</span><span class="n">responses</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">vocab_diversity</span> <span class="o">&lt;</span> <span class="mf">0.3</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;警告：词汇多样性过低&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="2-kl">2. KL散度爆炸</h3>
+<p><strong>错误表现</strong>：</p>
+<ul>
+<li>训练后模型行为完全改变</li>
+<li>失去基础能力（如语法正确性）</li>
+</ul>
+<p><strong>预防措施</strong>：</p>
+<ul>
+<li>使用自适应KL系数</li>
+<li>设置KL散度硬上限</li>
+<li>定期重置到checkpoint</li>
+</ul>
+<h3 id="3-dpo">3. DPO训练不稳定</h3>
+<p><strong>错误表现</strong>：</p>
+<ul>
+<li>损失震荡不收敛</li>
+<li>chosen和rejected的概率都趋向于0</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>降低学习率（通常5e-7以下）</li>
+<li>增加β参数（提高正则化）</li>
+<li>过滤低质量偏好对</li>
+</ul>
+<h3 id="4-constitutional-ai">4. Constitutional AI的原则冲突</h3>
+<p><strong>错误表现</strong>：</p>
+<ul>
+<li>模型在满足一个原则时违反另一个</li>
+<li>输出变得过于保守或模糊</li>
+</ul>
+<p><strong>处理方法</strong>：</p>
+<ul>
+<li>建立清晰的原则优先级</li>
+<li>使用分层原则结构</li>
+<li>定期审查和调整原则</li>
+</ul>
+<h3 id="5-rl">5. 在线RL的计算爆炸</h3>
+<p><strong>错误表现</strong>：</p>
+<ul>
+<li>训练时间指数增长</li>
+<li>GPU内存溢出</li>
+</ul>
+<p><strong>优化技巧</strong>：</p>
+<ul>
+<li>使用经验回放缓冲区</li>
+<li>批量生成和评估</li>
+<li>实施早停机制</li>
+</ul>
+<p>💡 <strong>最佳实践建议</strong>：</p>
+<ol>
+<li>始终保留SFT检查点作为回退方案</li>
+<li>使用多个独立的评估指标</li>
+<li>定期进行人工评估验证</li>
+<li>记录详细的实验日志便于调试</li>
+<li>从小规模实验开始逐步扩大</li>
+</ol>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter5.html" class="nav-link prev">← 第五章：多模态任务实验设计</a><a href="chapter7.html" class="nav-link next">第七章：训练循环与迭代优化 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

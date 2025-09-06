@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第八章：评估与基准测试</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">LLM 后训练实验设计指南</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第一章：后训练基础理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第二章：实验代码基础设施</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第三章：数据工程</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第四章：纯语言任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第五章：多模态任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第六章：强化学习与人类反馈</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第七章：训练循环与迭代优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第八章：评估与基准测试</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第九章：生产部署与监控</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第十章：案例研究与最佳实践</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="_1">第八章：评估与基准测试</h1>
+<p>构建全面、可靠的评估体系是 LLM 后训练成功的关键。本章深入探讨如何设计自动评估指标、组织人工评估、实施在线实验，以及构建高质量的基准测试集。我们将重点关注评估的可靠性、效率和防止数据泄露等实际挑战。</p>
+<h2 id="81">8.1 自动评估指标设计</h2>
+<h3 id="811">8.1.1 评估指标分类体系</h3>
+<p>LLM 的自动评估指标可分为四个层次：</p>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────┐
+│                  评估指标体系                      │
+├─────────────────────────────────────────────────┤
+│                                                   │
+│  1. 表面指标 (Surface Metrics)                    │
+│     ├── BLEU, ROUGE, METEOR                      │
+│     └── 困惑度 (Perplexity)                       │
+│                                                   │
+│  2. 语义指标 (Semantic Metrics)                   │
+│     ├── BERTScore, BLEURT                        │
+│     └── 语义相似度 (Cosine Similarity)            │
+│                                                   │
+│  3. 任务指标 (Task-specific Metrics)              │
+│     ├── 准确率、召回率、F1                         │
+│     └── 领域特定指标                              │
+│                                                   │
+│  4. 模型评估 (Model-based Evaluation)             │
+│     ├── GPT-4 评分                               │
+│     └── 奖励模型评分                              │
+│                                                   │
+└─────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="812">8.1.2 组合指标设计</h3>
+<p>单一指标往往无法全面反映模型性能，需要设计组合指标：</p>
+<p>$$\text{Score}_{\text{composite}} = \sum_{i=1}^{n} w_i \cdot \text{normalize}(m_i)$$
+其中 $w_i$ 是权重，$m_i$ 是第 $i$ 个指标，normalize 函数将不同量纲的指标归一化。</p>
+<p><strong>权重设计原则</strong>：</p>
+<ol>
+<li><strong>业务导向</strong>：根据实际应用场景调整权重</li>
+<li><strong>动态调整</strong>：随模型能力提升调整权重分配</li>
+<li><strong>敏感性分析</strong>：验证权重变化对最终排序的影响</li>
+</ol>
+<h3 id="813">8.1.3 指标可靠性验证</h3>
+<p>评估指标本身需要验证其可靠性：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码：指标可靠性验证框架</span>
+<span class="k">def</span> <span class="nf">validate_metric</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">test_cases</span><span class="p">):</span>
+    <span class="c1"># 1. 一致性检验</span>
+    <span class="n">consistency_score</span> <span class="o">=</span> <span class="n">check_consistency</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">test_cases</span><span class="p">)</span>
+
+    <span class="c1"># 2. 区分度检验</span>
+    <span class="n">discrimination_score</span> <span class="o">=</span> <span class="n">check_discrimination</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">test_cases</span><span class="p">)</span>
+
+    <span class="c1"># 3. 与人工评分相关性</span>
+    <span class="n">human_correlation</span> <span class="o">=</span> <span class="n">compute_correlation</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">human_scores</span><span class="p">)</span>
+
+    <span class="c1"># 4. 稳定性检验（多次运行）</span>
+    <span class="n">stability_score</span> <span class="o">=</span> <span class="n">check_stability</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">test_cases</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;consistency&#39;</span><span class="p">:</span> <span class="n">consistency_score</span><span class="p">,</span>
+        <span class="s1">&#39;discrimination&#39;</span><span class="p">:</span> <span class="n">discrimination_score</span><span class="p">,</span>
+        <span class="s1">&#39;human_correlation&#39;</span><span class="p">:</span> <span class="n">human_correlation</span><span class="p">,</span>
+        <span class="s1">&#39;stability&#39;</span><span class="p">:</span> <span class="n">stability_score</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<h3 id="814-llm-as-judge">8.1.4 LLM-as-Judge 方法</h3>
+<p>使用强大的 LLM 作为评判者已成为主流方法：</p>
+<p><strong>优势</strong>：</p>
+<ul>
+<li>能理解复杂的语义和上下文</li>
+<li>可以提供详细的评分理由</li>
+<li>易于扩展到新任务</li>
+</ul>
+<p><strong>挑战与解决方案</strong>：</p>
+<ol>
+<li><strong>位置偏差</strong>：随机打乱候选答案顺序</li>
+<li><strong>长度偏差</strong>：归一化或使用配对比较</li>
+<li><strong>自我偏好</strong>：使用多个不同模型交叉验证</li>
+<li><strong>提示敏感性</strong>：测试多个提示模板</li>
+</ol>
+<p><strong>评分提示模板示例</strong>：</p>
+<div class="codehilite"><pre><span></span><code>请评估以下回答的质量，考虑以下维度：
+
+1. 准确性（0-10分）：信息是否正确
+2. 相关性（0-10分）：是否回答了问题
+3. 完整性（0-10分）：是否涵盖关键点
+4. 清晰度（0-10分）：表达是否清楚
+
+问题：{question}
+回答：{answer}
+
+请提供每个维度的分数和简要理由。
+</code></pre></div>
+
+<h2 id="82">8.2 人工评估的组织与偏差控制</h2>
+<h3 id="821">8.2.1 评估任务设计</h3>
+<p>人工评估设计的核心要素：</p>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────────────────────┐
+│         人工评估任务设计               │
+├──────────────────────────────────────┤
+│                                      │
+│  1. 评估类型选择                      │
+│     ├── 绝对评分 (1-5分)             │
+│     ├── 配对比较 (A vs B)            │
+│     └── 排序任务 (Ranking)           │
+│                                      │
+│  2. 评估维度定义                      │
+│     ├── 单维度 vs 多维度              │
+│     └── 整体 vs 细粒度                │
+│                                      │
+│  3. 标注界面设计                      │
+│     ├── 清晰的指令                   │
+│     ├── 示例说明                     │
+│     └── 实时反馈机制                 │
+│                                      │
+└──────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="822">8.2.2 标注者管理</h3>
+<p><strong>标注者选择</strong>：</p>
+<ul>
+<li><strong>专家标注</strong>：领域专家，质量高但成本高</li>
+<li><strong>众包标注</strong>：规模大但需要严格质控</li>
+<li><strong>内部团队</strong>：可控性强，适合敏感数据</li>
+</ul>
+<p><strong>质量控制机制</strong>：</p>
+<ol>
+<li><strong>黄金标准题</strong>：插入已知答案的测试题</li>
+<li><strong>重复标注</strong>：计算标注者间一致性（Kappa系数）</li>
+<li><strong>动态监控</strong>：实时追踪标注质量趋势</li>
+<li><strong>培训与反馈</strong>：定期培训和个性化反馈</li>
+</ol>
+<h3 id="823">8.2.3 偏差识别与缓解</h3>
+<p>常见的人工评估偏差：</p>
+<p>| 偏差类型 | 描述 | 缓解策略 |</p>
+<table>
+<thead>
+<tr>
+<th>偏差类型</th>
+<th>描述</th>
+<th>缓解策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>顺序效应</td>
+<td>第一个或最后一个选项更容易被选中</td>
+<td>随机化呈现顺序</td>
+</tr>
+<tr>
+<td>锚定效应</td>
+<td>受第一个评分影响</td>
+<td>使用配对比较代替绝对评分</td>
+</tr>
+<tr>
+<td>疲劳效应</td>
+<td>长时间标注导致质量下降</td>
+<td>限制单次任务量，强制休息</td>
+</tr>
+<tr>
+<td>个人偏好</td>
+<td>标注者的主观偏好</td>
+<td>多人标注取平均，异常值检测</td>
+</tr>
+<tr>
+<td>样本选择偏差</td>
+<td>评估集不代表真实分布</td>
+<td>分层采样，定期更新评估集</td>
+</tr>
+</tbody>
+</table>
+<h3 id="824">8.2.4 标注一致性分析</h3>
+<p><strong>Fleiss' Kappa 计算</strong>：
+$$\kappa = \frac{P_o - P_e}{1 - P_e}$$
+其中 $P_o$ 是观察到的一致性，$P_e$ 是随机一致性。</p>
+<p><strong>一致性阈值参考</strong>：</p>
+<ul>
+<li>κ &gt; 0.8：几乎完美一致</li>
+<li>0.6 &lt; κ ≤ 0.8：实质性一致</li>
+<li>0.4 &lt; κ ≤ 0.6：中等一致</li>
+<li>κ ≤ 0.4：需要改进标注流程</li>
+</ul>
+<h2 id="83-ab">8.3 A/B 测试与在线实验</h2>
+<h3 id="831">8.3.1 实验设计原则</h3>
+<div class="codehilite"><pre><span></span><code>   用户流量分配
+   ┌─────────────────────────────────┐
+   │          总流量                  │
+   └────────────┬────────────────────┘
+                │
+      ┌─────────┴─────────┐
+      │                   │
+  ┌───▼───┐         ┌────▼────┐
+  │控制组  │         │ 实验组   │
+  │ 50%   │         │  50%    │
+  └───┬───┘         └────┬────┘
+      │                   │
+      │                   │
+  ┌───▼───┐         ┌────▼────┐
+  │模型 A  │         │ 模型 B  │
+  └───────┘         └─────────┘
+</code></pre></div>
+
+<p><strong>关键考虑因素</strong>：</p>
+<ol>
+<li><strong>样本量计算</strong>：基于统计功效分析</li>
+<li><strong>分流策略</strong>：用户级 vs 会话级</li>
+<li><strong>实验时长</strong>：考虑周期性效应</li>
+<li><strong>护栏指标</strong>：防止负面影响</li>
+</ol>
+<h3 id="832">8.3.2 统计显著性检验</h3>
+<p><strong>样本量估算公式</strong>：
+$$n = \frac{2(Z_{\alpha/2} + Z_{\beta})^2 \sigma^2}{\delta^2}$$
+其中：</p>
+<ul>
+<li>$Z_{\alpha/2}$：显著性水平对应的 Z 值</li>
+<li>$Z_{\beta}$：统计功效对应的 Z 值</li>
+<li>$\sigma$：标准差</li>
+<li>$\delta$：最小可检测效应</li>
+</ul>
+<h3 id="833">8.3.3 多臂老虎机优化</h3>
+<p>动态调整流量分配以最大化收益：</p>
+<p><strong>Thompson Sampling 算法</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码</span>
+<span class="k">def</span> <span class="nf">thompson_sampling</span><span class="p">(</span><span class="n">arms</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arms</span><span class="p">)):</span>
+        <span class="c1"># 从 Beta 分布采样</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">beta</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+    <span class="c1"># 选择采样值最大的臂</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="834">8.3.4 实验监控与早停</h3>
+<p><strong>监控指标体系</strong>：</p>
+<ol>
+<li><strong>核心指标</strong>：直接业务目标（如用户满意度）</li>
+<li><strong>护栏指标</strong>：安全边界（如延迟、错误率）</li>
+<li><strong>诊断指标</strong>：帮助理解变化原因</li>
+<li><strong>领先指标</strong>：预测长期影响</li>
+</ol>
+<p><strong>早停决策框架</strong>：</p>
+<ul>
+<li>显著负面影响：立即停止</li>
+<li>显著正面影响：考虑提前结束</li>
+<li>无显著差异：评估继续的价值</li>
+</ul>
+<h2 id="84">8.4 基准测试集的构建原则</h2>
+<h3 id="841">8.4.1 测试集设计原则</h3>
+<p>高质量基准测试集的特征：</p>
+<div class="codehilite"><pre><span></span><code>┌────────────────────────────────────────┐
+│         基准测试集设计原则                │
+├────────────────────────────────────────┤
+│                                        │
+│  1. 代表性 (Representativeness)        │
+│     └── 覆盖真实使用场景                 │
+│                                        │
+│  2. 多样性 (Diversity)                 │
+│     └── 难度梯度、领域覆盖               │
+│                                        │
+│  3. 区分度 (Discrimination)            │
+│     └── 能够区分不同能力水平             │
+│                                        │
+│  4. 稳定性 (Stability)                 │
+│     └── 评分一致、不易过拟合             │
+│                                        │
+│  5. 可解释性 (Interpretability)        │
+│     └── 错误可分析、可归因               │
+│                                        │
+└────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="842">8.4.2 动态基准构建</h3>
+<p>静态基准容易被过拟合，需要动态更新：</p>
+<p><strong>动态生成策略</strong>：</p>
+<ol>
+<li><strong>对抗样本生成</strong>：基于模型弱点生成</li>
+<li><strong>难度自适应</strong>：根据模型能力调整</li>
+<li><strong>版本控制</strong>：保持向后兼容性</li>
+<li><strong>增量更新</strong>：定期添加新样本</li>
+</ol>
+<h3 id="843">8.4.3 多维度评估矩阵</h3>
+<div class="codehilite"><pre><span></span><code>评估维度矩阵示例：
+
+        知识  推理  创造  安全  效率
+任务1    ✓    ✓    -    ✓    -
+任务2    -    ✓    ✓    -    ✓
+任务3    ✓    -    -    ✓    ✓
+任务4    -    ✓    ✓    ✓    -
+任务5    ✓    -    ✓    -    ✓
+
+✓ 表示该任务测试该维度
+</code></pre></div>
+
+<h3 id="844">8.4.4 标准化评估协议</h3>
+<p><strong>评估协议要素</strong>：</p>
+<ol>
+<li><strong>输入格式</strong>：统一的提示模板</li>
+<li><strong>输出解析</strong>：标准化的答案提取</li>
+<li><strong>评分规则</strong>：明确的计分方法</li>
+<li><strong>运行环境</strong>：固定的推理参数</li>
+</ol>
+<h2 id="85">8.5 评估数据泄露的检测与预防</h2>
+<h3 id="851">8.5.1 数据泄露的类型与危害</h3>
+<p>数据泄露会严重影响评估的可靠性：</p>
+<div class="codehilite"><pre><span></span><code>数据泄露分类：
+
+1. 直接泄露 (Direct Leakage)
+   └── 测试集直接出现在训练数据中
+
+2. 间接泄露 (Indirect Leakage)
+   ├── 相似样本泄露
+   └── 答案模式泄露
+
+3. 时间泄露 (Temporal Leakage)
+   └── 使用未来数据训练
+
+4. 特征泄露 (Feature Leakage)
+   └── 标签信息编码在特征中
+</code></pre></div>
+
+<h3 id="852">8.5.2 泄露检测方法</h3>
+<ol>
+<li><strong>N-gram 重叠检测</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">detect_ngram_overlap</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">13</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    检测训练集和测试集的 n-gram 重叠</span>
+<span class="sd">    n=13 是经验值，能有效检测大部分泄露</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">train_ngrams</span> <span class="o">=</span> <span class="n">extract_ngrams</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">test_ngrams</span> <span class="o">=</span> <span class="n">extract_ngrams</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+    <span class="n">overlap</span> <span class="o">=</span> <span class="n">train_ngrams</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">test_ngrams</span><span class="p">)</span>
+    <span class="n">overlap_ratio</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">overlap</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_ngrams</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;overlap_ratio&#39;</span><span class="p">:</span> <span class="n">overlap_ratio</span><span class="p">,</span>
+        <span class="s1">&#39;suspicious_samples&#39;</span><span class="p">:</span> <span class="n">find_suspicious_samples</span><span class="p">(</span><span class="n">overlap</span><span class="p">)</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>嵌入空间相似度检测</strong></li>
+</ol>
+<p>使用句子嵌入检测语义相似的样本：
+$$\text{similarity} = \frac{\mathbf{e}_{\text{train}} \cdot \mathbf{e}_{\text{test}}}{||\mathbf{e}_{\text{train}}|| \cdot ||\mathbf{e}_{\text{test}}||}$$
+阈值设置：</p>
+<ul>
+<li>similarity &gt; 0.95：高度可疑</li>
+<li>0.90 &lt; similarity ≤ 0.95：需要人工审核</li>
+<li>similarity ≤ 0.90：基本安全</li>
+</ul>
+<ol start="3">
+<li><strong>模型行为分析</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">analyze_model_behavior</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_set</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    通过模型行为检测可能的数据泄露</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># 1. 困惑度异常检测</span>
+    <span class="n">perplexity</span> <span class="o">=</span> <span class="n">compute_perplexity</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_set</span><span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perplexity_anomaly&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">detect_anomaly</span><span class="p">(</span><span class="n">perplexity</span><span class="p">)</span>
+
+    <span class="c1"># 2. 置信度分布分析</span>
+    <span class="n">confidence</span> <span class="o">=</span> <span class="n">get_confidence_distribution</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_set</span><span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;confidence_skew&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_skewness</span><span class="p">(</span><span class="n">confidence</span><span class="p">)</span>
+
+    <span class="c1"># 3. 记忆化检测</span>
+    <span class="n">memorization</span> <span class="o">=</span> <span class="n">test_memorization</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_set</span><span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;memorization_score&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">memorization</span>
+
+    <span class="k">return</span> <span class="n">metrics</span>
+</code></pre></div>
+
+<h3 id="853">8.5.3 预防策略</h3>
+<ol>
+<li><strong>数据隔离机制</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────┐
+│          数据隔离架构                 │
+├─────────────────────────────────────┤
+│                                     │
+│   训练环境          评估环境          │
+│   ┌──────┐        ┌──────┐         │
+│   │训练集 │        │测试集 │         │
+│   └──┬───┘        └──┬───┘         │
+│      │               │              │
+│      ▼               ▼              │
+│   ┌──────┐        ┌──────┐         │
+│   │ 模型  │───────&gt;│ 评估  │         │
+│   └──────┘        └──────┘         │
+│                                     │
+│   访问控制：                         │
+│   - 训练团队无法访问测试集            │
+│   - 评估团队无法修改训练数据          │
+│   - 审计日志记录所有访问              │
+│                                     │
+└─────────────────────────────────────┘
+</code></pre></div>
+
+<ol start="2">
+<li><strong>时间戳验证</strong></li>
+</ol>
+<p>确保训练数据的时间早于测试数据：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">validate_temporal_integrity</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">):</span>
+    <span class="n">train_latest</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">timestamp</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">train_data</span><span class="p">)</span>
+    <span class="n">test_earliest</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">timestamp</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">test_data</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">train_latest</span> <span class="o">&gt;=</span> <span class="n">test_earliest</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">DataLeakageError</span><span class="p">(</span><span class="s2">&quot;Temporal leakage detected&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>哈希指纹追踪</strong></li>
+</ol>
+<p>为每个数据样本生成唯一指纹：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">generate_data_fingerprint</span><span class="p">(</span><span class="n">sample</span><span class="p">):</span>
+    <span class="c1"># 规范化文本</span>
+    <span class="n">normalized</span> <span class="o">=</span> <span class="n">normalize_text</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+    <span class="c1"># 生成哈希</span>
+    <span class="n">fingerprint</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">normalized</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fingerprint</span>
+
+<span class="c1"># 构建指纹数据库</span>
+<span class="n">fingerprint_db</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;train&#39;</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">generate_fingerprint</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">train_data</span><span class="p">),</span>
+    <span class="s1">&#39;test&#39;</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">generate_fingerprint</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">test_data</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1"># 检查重叠</span>
+<span class="n">overlap</span> <span class="o">=</span> <span class="n">fingerprint_db</span><span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">fingerprint_db</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">]</span>
+</code></pre></div>
+
+<h3 id="854">8.5.4 持续监控机制</h3>
+<p><strong>监控指标仪表板</strong>：</p>
+<div class="codehilite"><pre><span></span><code>实时监控指标：
+┌──────────────────────────────────────┐
+│  数据泄露监控仪表板                    │
+├──────────────────────────────────────┤
+│                                      │
+│  N-gram 重叠率：     0.3% [正常]      │
+│  嵌入相似度峰值：    0.89 [正常]      │
+│  困惑度异常值：      2个 [警告]       │
+│  新增测试样本：      523个            │
+│  最后检查时间：      2小时前          │
+│                                      │
+│  历史趋势：                          │
+│  ┌────────────────────────┐         │
+│  │     ╱╲    ╱╲           │         │
+│  │    ╱  ╲  ╱  ╲          │         │
+│  │   ╱    ╲╱    ╲         │         │
+│  │  ╱            ╲        │         │
+│  └────────────────────────┘         │
+│                                      │
+└──────────────────────────────────────┘
+</code></pre></div>
+
+<h2 id="86">8.6 本章小结</h2>
+<p>本章系统介绍了 LLM 后训练的评估体系构建，核心要点包括：</p>
+<p><strong>关键概念</strong>：</p>
+<ol>
+<li><strong>多层次评估体系</strong>：从表面指标到模型评估的递进式评估</li>
+<li><strong>人机结合评估</strong>：自动指标与人工评估的优势互补</li>
+<li><strong>在线实验方法</strong>：A/B 测试和多臂老虎机的应用</li>
+<li><strong>数据泄露防控</strong>：检测和预防机制的建立</li>
+</ol>
+<p><strong>核心公式</strong>：</p>
+<ul>
+<li>组合指标：$\text{Score}_{\text{composite}} = \sum_{i=1}^{n} w_i \cdot \text{normalize}(m_i)$</li>
+<li>Kappa 一致性：$\kappa = \frac{P_o - P_e}{1 - P_e}$</li>
+<li>样本量估算：$n = \frac{2(Z_{\alpha/2} + Z_{\beta})^2 \sigma^2}{\delta^2}$</li>
+</ul>
+<p><strong>实践要点</strong>：</p>
+<ul>
+<li>评估指标需要验证其自身的可靠性</li>
+<li>人工评估需要严格的质量控制流程</li>
+<li>基准测试集应当动态更新以防过拟合</li>
+<li>数据泄露检测应贯穿整个训练周期</li>
+</ul>
+<h2 id="87">8.7 常见陷阱与错误</h2>
+<h3 id="1">⚠️ 陷阱 1：过度依赖单一指标</h3>
+<p><strong>问题</strong>：仅优化 BLEU 或困惑度，导致模型产生不自然的输出。</p>
+<p><strong>解决</strong>：</p>
+<ul>
+<li>使用多维度评估矩阵</li>
+<li>结合自动指标和人工评估</li>
+<li>定期审查指标的业务相关性</li>
+</ul>
+<h3 id="2">⚠️ 陷阱 2：评估集分布偏移</h3>
+<p><strong>问题</strong>：评估集不能代表实际使用场景，导致线上效果差。</p>
+<p><strong>解决</strong>：</p>
+<ul>
+<li>定期从线上采样更新评估集</li>
+<li>监控评估集与线上数据的分布差异</li>
+<li>使用分层采样确保覆盖各种场景</li>
+</ul>
+<h3 id="3">⚠️ 陷阱 3：标注者偏差未控制</h3>
+<p><strong>问题</strong>：标注质量不稳定，导致评估结果不可靠。</p>
+<p><strong>解决</strong>：</p>
+<ul>
+<li>实施标注者培训和认证</li>
+<li>使用多人标注和一致性检查</li>
+<li>定期审计标注质量</li>
+</ul>
+<h3 id="4ab">⚠️ 陷阱 4：A/B 测试样本量不足</h3>
+<p><strong>问题</strong>：过早得出结论，统计功效不足。</p>
+<p><strong>解决</strong>：</p>
+<ul>
+<li>事先进行功效分析计算样本量</li>
+<li>使用序贯测试方法</li>
+<li>设置最小实验时长</li>
+</ul>
+<h3 id="5">⚠️ 陷阱 5：忽视隐性数据泄露</h3>
+<p><strong>问题</strong>：只检查直接重复，忽略语义相似的泄露。</p>
+<p><strong>解决</strong>：</p>
+<ul>
+<li>使用多种检测方法（n-gram、嵌入、行为）</li>
+<li>建立数据谱系追踪系统</li>
+<li>实施严格的数据访问控制</li>
+</ul>
+<h3 id="_2">💡 调试技巧</h3>
+<ol>
+<li>
+<p><strong>评估调试检查清单</strong>：
+   - [ ] 评估指标与业务目标对齐
+   - [ ] 人工评估指南清晰无歧义
+   - [ ] A/B 测试流量分配均匀
+   - [ ] 数据泄露检测已运行
+   - [ ] 评估结果可复现</p>
+</li>
+<li>
+<p><strong>异常结果排查流程</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>评估异常 → 检查数据质量 → 验证评估代码 
+         → 分析模型输出 → 审查标注一致性
+</code></pre></div>
+
+<ol start="3">
+<li><strong>性能瓶颈优化</strong>：
+   - 批量化评估请求
+   - 缓存重复计算结果
+   - 并行化独立评估任务</li>
+</ol>
+<h2 id="88">8.8 练习题</h2>
+<h3 id="81_1">练习 8.1：设计组合评估指标</h3>
+<p>设计一个用于评估客服对话系统的组合指标，需要同时考虑准确性、响应速度和用户满意度。</p>
+<p><strong>Hint</strong>: 考虑不同指标的量纲和业务重要性。</p>
+<details>
+<summary>参考答案</summary>
+<p>组合指标设计：
+$$\text{Score} = 0.4 \times \text{norm}(\text{准确率}) + 0.3 \times \text{norm}(\text{满意度}) + 0.2 \times \text{norm}(\frac{1}{\text{延迟}}) + 0.1 \times \text{norm}(\text{覆盖率})$$
+其中归一化函数：
+$$\text{norm}(x) = \frac{x - x_{\min}}{x_{\max} - x_{\min}}$$
+权重设计理由：</p>
+<ul>
+<li>准确率（40%）：核心业务指标，直接影响问题解决率</li>
+<li>满意度（30%）：用户体验的直接反映</li>
+<li>响应速度（20%）：影响用户等待体验，使用倒数确保越快越好</li>
+<li>覆盖率（10%）：能处理的问题类型范围</li>
+</ul>
+<p>实施要点：</p>
+<ol>
+<li>定期根据业务反馈调整权重</li>
+<li>设置各指标的最低阈值，任一指标低于阈值则总分置零</li>
+<li>使用滑动窗口计算，避免短期波动影响</li>
+</ol>
+</details>
+<h3 id="82_1">练习 8.2：计算标注一致性</h3>
+<p>三位标注者对 100 个样本进行二分类标注，结果如下：</p>
+<ul>
+<li>所有人都标注为正例：30 个</li>
+<li>所有人都标注为负例：40 个</li>
+<li>两人正例一人负例：20 个</li>
+<li>一人正例两人负例：10 个</li>
+</ul>
+<p>计算 Fleiss' Kappa 值并评估一致性水平。</p>
+<p><strong>Hint</strong>: Fleiss' Kappa 需要先计算观察一致性和期望一致性。</p>
+<details>
+<summary>参考答案</summary>
+<p>计算步骤：</p>
+<ol>
+<li>
+<p>构建一致性矩阵：
+   - 完全一致（3人同意）：70个样本
+   - 部分一致（2人同意）：30个样本</p>
+</li>
+<li>
+<p>计算观察一致性 $P_o$：
+$$P_o = \frac{1}{N \times k(k-1)} \sum_{i=1}^{N} \sum_{j=1}^{c} n_{ij}(n_{ij}-1)$$
+其中 N=100, k=3, c=2
+$$P_o = \frac{70 \times 3 \times 2 + 30 \times 2 \times 1}{100 \times 3 \times 2} = \frac{480}{600} = 0.8$$</p>
+</li>
+<li>
+<p>计算期望一致性 $P_e$：
+   - 正例总数：30×3 + 20×2 + 10×1 = 140
+   - 负例总数：40×3 + 20×1 + 10×2 = 160
+   - $p_{\text{正}} = 140/300 = 0.467$
+   - $p_{\text{负}} = 160/300 = 0.533$
+$$P_e = p_{\text{正}}^2 + p_{\text{负}}^2 = 0.467^2 + 0.533^2 = 0.502$$</p>
+</li>
+<li>
+<p>计算 Kappa：
+$$\kappa = \frac{P_o - P_e}{1 - P_e} = \frac{0.8 - 0.502}{1 - 0.502} = \frac{0.298}{0.498} = 0.598$$
+评估：κ = 0.598 表示"中等一致性"，接近"实质性一致"的边界。建议加强标注指南培训。</p>
+</li>
+</ol>
+</details>
+<h3 id="83ab">练习 8.3：A/B 测试样本量计算</h3>
+<p>计划进行一个 A/B 测试，当前转化率为 5%，希望检测出 0.5% 的提升（到 5.5%），要求显著性水平 α=0.05，统计功效 1-β=0.8。需要多少样本量？</p>
+<p><strong>Hint</strong>: 使用比例检验的样本量公式。</p>
+<details>
+<summary>参考答案</summary>
+<p>使用比例差异的样本量公式：</p>
+<p>给定参数：</p>
+<ul>
+<li>$p_1 = 0.05$（控制组转化率）</li>
+<li>$p_2 = 0.055$（实验组期望转化率）</li>
+<li>$\alpha = 0.05$，$Z_{\alpha/2} = 1.96$</li>
+<li>$\beta = 0.2$，$Z_{\beta} = 0.84$</li>
+</ul>
+<p>计算步骤：</p>
+<ol>
+<li>
+<p>计算平均比例：
+$$\bar{p} = \frac{p_1 + p_2}{2} = 0.0525$$</p>
+</li>
+<li>
+<p>计算标准差：
+$$\sigma = \sqrt{2\bar{p}(1-\bar{p})} = \sqrt{2 \times 0.0525 \times 0.9475} = 0.315$$</p>
+</li>
+<li>
+<p>计算样本量：
+$$n = \frac{(Z_{\alpha/2} + Z_{\beta})^2 \times \sigma^2}{(p_2 - p_1)^2}$$
+   $$n = \frac{(1.96 + 0.84)^2 \times 0.315^2}{0.005^2} = \frac{7.84 \times 0.099}{0.000025} = 31,046$$</p>
+</li>
+</ol>
+<p>每组需要约 31,000 个样本，总共需要 62,000 个样本。</p>
+<p>实践建议：</p>
+<ul>
+<li>考虑使用序贯测试减少样本需求</li>
+<li>可以先进行小规模试验评估实际效应大小</li>
+<li>考虑使用贝叶斯方法获得更灵活的决策框架</li>
+</ul>
+</details>
+<h3 id="84_1">练习 8.4：设计数据泄露检测系统</h3>
+<p>设计一个完整的数据泄露检测系统，包括预防、检测和响应机制。</p>
+<p><strong>Hint</strong>: 考虑技术手段和流程管理两个层面。</p>
+<details>
+<summary>参考答案</summary>
+<p>数据泄露检测系统设计：</p>
+<ol>
+<li>
+<p><strong>预防层</strong>
+- 数据访问控制：基于角色的权限管理
+- 数据加密：测试集加密存储，仅评估时解密
+- 审计日志：记录所有数据访问操作
+- 自动化隔离：CI/CD 流程中自动分离训练和测试数据</p>
+</li>
+<li>
+<p><strong>检测层</strong>
+- 静态检测：
+  - N-gram 重叠分析（n=5,10,15）
+  - 语义相似度检测（阈值 0.9）
+  - 哈希指纹匹配
+- 动态检测：
+  - 模型困惑度异常检测
+  - 置信度分布分析
+  - 记忆化测试</p>
+</li>
+<li>
+<p><strong>响应机制</strong>
+- 自动告警：检测到泄露立即通知
+- 泄露评估：量化泄露程度和影响
+- 数据清理：移除或替换泄露样本
+- 模型回滚：必要时回滚到未污染版本</p>
+</li>
+<li>
+<p><strong>监控指标</strong></p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">monitoring_metrics</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;ngram_overlap&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;threshold&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span> <span class="s1">&#39;warn&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;semantic_similarity&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;threshold&#39;</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span> <span class="s1">&#39;alert&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;perplexity_drop&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;threshold&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span> <span class="s1">&#39;investigate&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;exact_match_rate&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;threshold&#39;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span> <span class="s1">&#39;block&#39;</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ol start="5">
+<li><strong>流程集成</strong>
+- 训练前检查：自动扫描训练数据
+- 训练中监控：定期采样检测
+- 评估前验证：确认测试集完整性
+- 定期审计：月度数据泄露审计报告</li>
+</ol>
+</details>
+<h3 id="85_1">练习 8.5：优化人工评估成本</h3>
+<p>你有 1000 个样本需要评估，预算只够 2000 次标注。如何设计标注策略以获得最可靠的结果？</p>
+<p><strong>Hint</strong>: 考虑样本选择、标注分配和质量控制的平衡。</p>
+<details>
+<summary>参考答案</summary>
+<p>优化策略设计：</p>
+<ol>
+<li>
+<p><strong>样本分层（300个样本）</strong>
+- 使用聚类将 1000 个样本分成 10 类
+- 每类随机选择 30 个代表性样本
+- 每个样本标注 3 次（900 次标注）</p>
+</li>
+<li>
+<p><strong>重点样本（200个样本）</strong>
+- 模型置信度低的 100 个样本
+- 业务关键场景 100 个样本
+- 每个样本标注 2 次（400 次标注）</p>
+</li>
+<li>
+<p><strong>普通采样（300个样本）</strong>
+- 剩余样本随机采样 300 个
+- 每个样本标注 1 次（300 次标注）</p>
+</li>
+<li>
+<p><strong>质量控制（200个样本）</strong>
+- 50 个黄金标准题（已知答案）
+- 150 个重复题（从已标注中选择）
+- 分散在标注任务中（200 次标注）</p>
+</li>
+<li>
+<p><strong>动态调整（200次机动）</strong>
+- 根据初步结果调整：
+  - 一致性低的增加标注
+  - 发现新模式时扩大采样</p>
+</li>
+</ol>
+<p>总计：300×3 + 200×2 + 300×1 + 200 + 200 = 2000 次</p>
+<p><strong>效果评估</strong>：</p>
+<ul>
+<li>核心样本覆盖率：80%（800/1000）</li>
+<li>平均标注次数：2次（2000/1000）</li>
+<li>质控比例：10%（200/2000）</li>
+</ul>
+</details>
+<h3 id="86_1">练习 8.6：设计多模态评估体系</h3>
+<p>为一个视觉-语言模型设计评估体系，需要评估图像理解、文本生成和跨模态对齐能力。</p>
+<p><strong>Hint</strong>: 考虑单模态和跨模态的评估指标。</p>
+<details>
+<summary>参考答案</summary>
+<p>多模态评估体系设计：</p>
+<ol>
+<li>
+<p><strong>图像理解评估</strong>
+- 图像分类准确率
+- 目标检测 mAP
+- 图像描述 CIDEr 分数
+- 视觉问答准确率</p>
+</li>
+<li>
+<p><strong>文本生成评估</strong>
+- 语言流畅度（困惑度）
+- 事实准确性（知识问答）
+- 逻辑一致性（推理任务）
+- 多样性指标（Self-BLEU）</p>
+</li>
+<li>
+<p><strong>跨模态对齐评估</strong>
+- 图文匹配准确率（检索任务）
+- 语义相似度（CLIP Score）
+- 细粒度对齐（区域-词汇对应）
+- 时序一致性（视频理解）</p>
+</li>
+<li>
+<p><strong>综合评估框架</strong></p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">multimodal_eval</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;image_only&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;classification&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="s1">&#39;detection&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="s1">&#39;captioning&#39;</span><span class="p">:</span> <span class="mf">0.6</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;text_only&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;fluency&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
+        <span class="s1">&#39;diversity&#39;</span><span class="p">:</span> <span class="mf">0.3</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;cross_modal&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;retrieval&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s1">&#39;alignment&#39;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
+        <span class="s1">&#39;reasoning&#39;</span><span class="p">:</span> <span class="mf">0.3</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1"># 总分计算</span>
+<span class="n">total_score</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="mf">0.3</span> <span class="o">*</span> <span class="n">weighted_avg</span><span class="p">(</span><span class="n">image_scores</span><span class="p">,</span> <span class="n">image_weights</span><span class="p">)</span> <span class="o">+</span>
+    <span class="mf">0.3</span> <span class="o">*</span> <span class="n">weighted_avg</span><span class="p">(</span><span class="n">text_scores</span><span class="p">,</span> <span class="n">text_weights</span><span class="p">)</span> <span class="o">+</span>
+    <span class="mf">0.4</span> <span class="o">*</span> <span class="n">weighted_avg</span><span class="p">(</span><span class="n">cross_scores</span><span class="p">,</span> <span class="n">cross_weights</span><span class="p">)</span>
+<span class="p">)</span>
+</code></pre></div>
+
+<ol start="5">
+<li>
+<p><strong>特殊考虑</strong>
+- 模态缺失鲁棒性：测试单模态输入
+- 模态冲突处理：提供矛盾信息
+- 计算效率：推理速度和内存占用
+- 公平性评估：不同人群、文化的表现</p>
+</li>
+<li>
+<p><strong>基准数据集</strong>
+- COCO Captions：图像描述
+- VQA v2：视觉问答
+- Flickr30K：图文检索
+- Conceptual Captions：大规模预训练评估</p>
+</li>
+</ol>
+</details>
+<h3 id="87_1">练习 8.7：实现在线实验早停机制</h3>
+<p>设计一个 A/B 测试的早停决策系统，需要平衡统计严谨性和业务效率。</p>
+<p><strong>Hint</strong>: 考虑序贯测试和业务约束。</p>
+<details>
+<summary>参考答案</summary>
+<p>早停决策系统设计：</p>
+<ol>
+<li><strong>统计早停规则</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">StatisticalStopping</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>  <span class="c1"># 显著性水平</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>    <span class="c1"># Type II 错误率</span>
+
+    <span class="k">def</span> <span class="nf">should_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_a</span><span class="p">,</span> <span class="n">data_b</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="c1"># 序贯概率比检验 (SPRT)</span>
+        <span class="n">llr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_likelihood_ratio</span><span class="p">(</span><span class="n">data_a</span><span class="p">,</span> <span class="n">data_b</span><span class="p">)</span>
+
+        <span class="c1"># 计算停止边界</span>
+        <span class="n">upper_bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">lower_bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">llr</span> <span class="o">&gt;=</span> <span class="n">upper_bound</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;significant_positive&#39;</span>
+        <span class="k">elif</span> <span class="n">llr</span> <span class="o">&lt;=</span> <span class="n">lower_bound</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;significant_negative&#39;</span>
+        <span class="k">elif</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_duration</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;max_duration&#39;</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;continue&#39;</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>业务早停规则</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">BusinessStopping</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thresholds</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span> <span class="o">=</span> <span class="n">thresholds</span>
+
+    <span class="k">def</span> <span class="nf">should_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
+        <span class="c1"># 护栏指标检查</span>
+        <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;error_rate&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">[</span><span class="s1">&#39;max_error&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;guardrail_violation&#39;</span>
+
+        <span class="c1"># 业务指标严重恶化</span>
+        <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;revenue_drop&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">[</span><span class="s1">&#39;max_revenue_drop&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;business_impact&#39;</span>
+
+        <span class="c1"># 明显改善，可考虑提前全量</span>
+        <span class="k">if</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;improvement&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">[</span><span class="s1">&#39;clear_win&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;clear_winner&#39;</span>
+
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;continue&#39;</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>综合决策框架</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">make_stopping_decision</span><span class="p">(</span><span class="n">experiment</span><span class="p">):</span>
+    <span class="c1"># 收集数据</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">collect_experiment_data</span><span class="p">(</span><span class="n">experiment</span><span class="p">)</span>
+
+    <span class="c1"># 统计检验</span>
+    <span class="n">stat_stop</span><span class="p">,</span> <span class="n">stat_reason</span> <span class="o">=</span> <span class="n">statistical_check</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="c1"># 业务检查</span>
+    <span class="n">biz_stop</span><span class="p">,</span> <span class="n">biz_reason</span> <span class="o">=</span> <span class="n">business_check</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="c1"># 最小样本量检查</span>
+    <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;sample_size&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">MIN_SAMPLE_SIZE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;continue&#39;</span><span class="p">,</span> <span class="s1">&#39;insufficient_data&#39;</span>
+
+    <span class="c1"># 决策逻辑</span>
+    <span class="k">if</span> <span class="n">biz_reason</span> <span class="o">==</span> <span class="s1">&#39;guardrail_violation&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;stop_immediately&#39;</span><span class="p">,</span> <span class="n">biz_reason</span>
+
+    <span class="k">if</span> <span class="n">stat_stop</span> <span class="ow">and</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">MIN_DURATION</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;stop&#39;</span><span class="p">,</span> <span class="n">stat_reason</span>
+
+    <span class="k">if</span> <span class="n">biz_stop</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;stop&#39;</span><span class="p">,</span> <span class="n">biz_reason</span>
+
+    <span class="k">return</span> <span class="s1">&#39;continue&#39;</span><span class="p">,</span> <span class="s1">&#39;monitoring&#39;</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>实施要点</strong>
+- 设置最小运行时间（如 7 天）避免周期效应
+- 使用 Bonferroni 校正处理多重比较
+- 保留少量流量继续实验以验证长期效应
+- 记录所有早停决策用于事后分析</li>
+</ol>
+</details>
+<h3 id="88_1">练习 8.8：检测和量化模型记忆化</h3>
+<p>设计实验检测 LLM 是否记忆了训练数据，并量化记忆化程度。</p>
+<p><strong>Hint</strong>: 考虑使用探针任务和统计分析。</p>
+<details>
+<summary>参考答案</summary>
+<p>记忆化检测实验设计：</p>
+<ol>
+<li><strong>直接探测法</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">direct_memorization_test</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">known_samples</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    测试模型是否能逐字复现训练样本</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">memorization_scores</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">known_samples</span><span class="p">:</span>
+        <span class="c1"># 提供前缀，让模型续写</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">generation</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">sample</span><span class="p">))</span>
+
+        <span class="c1"># 计算精确匹配率</span>
+        <span class="n">exact_match</span> <span class="o">=</span> <span class="p">(</span><span class="n">generation</span> <span class="o">==</span> <span class="n">sample</span><span class="p">)</span>
+        <span class="n">char_overlap</span> <span class="o">=</span> <span class="n">calculate_char_overlap</span><span class="p">(</span><span class="n">generation</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+
+        <span class="n">memorization_scores</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s1">&#39;exact_match&#39;</span><span class="p">:</span> <span class="n">exact_match</span><span class="p">,</span>
+            <span class="s1">&#39;char_overlap&#39;</span><span class="p">:</span> <span class="n">char_overlap</span><span class="p">,</span>
+            <span class="s1">&#39;perplexity&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">perplexity</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">aggregate_scores</span><span class="p">(</span><span class="n">memorization_scores</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>隐私攻击测试</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">membership_inference_attack</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">members</span><span class="p">,</span> <span class="n">non_members</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    通过置信度差异判断样本是否在训练集中</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">member_scores</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">log_likelihood</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">members</span><span class="p">]</span>
+    <span class="n">non_member_scores</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">log_likelihood</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">non_members</span><span class="p">]</span>
+
+    <span class="c1"># 训练分类器区分两组</span>
+    <span class="n">classifier</span> <span class="o">=</span> <span class="n">train_classifier</span><span class="p">(</span><span class="n">member_scores</span><span class="p">,</span> <span class="n">non_member_scores</span><span class="p">)</span>
+    <span class="n">auc</span> <span class="o">=</span> <span class="n">compute_auc</span><span class="p">(</span><span class="n">classifier</span><span class="p">)</span>
+
+    <span class="c1"># AUC &gt; 0.5 表示存在记忆化</span>
+    <span class="n">memorization_level</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">auc</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># 归一化到 [0, 1]</span>
+
+    <span class="k">return</span> <span class="n">memorization_level</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>知识探针测试</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">knowledge_probe_test</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">factual_data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    测试模型记忆的事实性知识</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">fact</span> <span class="ow">in</span> <span class="n">factual_data</span><span class="p">:</span>
+        <span class="c1"># 测试不同提示下的一致性</span>
+        <span class="n">prompts</span> <span class="o">=</span> <span class="n">generate_paraphrases</span><span class="p">(</span><span class="n">fact</span><span class="p">[</span><span class="s1">&#39;question&#39;</span><span class="p">])</span>
+        <span class="n">answers</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">]</span>
+
+        <span class="c1"># 计算答案一致性</span>
+        <span class="n">consistency</span> <span class="o">=</span> <span class="n">calculate_consistency</span><span class="p">(</span><span class="n">answers</span><span class="p">)</span>
+        <span class="n">accuracy</span> <span class="o">=</span> <span class="n">check_accuracy</span><span class="p">(</span><span class="n">answers</span><span class="p">,</span> <span class="n">fact</span><span class="p">[</span><span class="s1">&#39;answer&#39;</span><span class="p">])</span>
+
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s1">&#39;consistency&#39;</span><span class="p">:</span> <span class="n">consistency</span><span class="p">,</span>
+            <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">accuracy</span><span class="p">,</span>
+            <span class="s1">&#39;confidence&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">confidence</span><span class="p">(</span><span class="n">fact</span><span class="p">[</span><span class="s1">&#39;question&#39;</span><span class="p">])</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">analyze_memorization_pattern</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>量化指标体系</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">compute_memorization_metrics</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_suite</span><span class="p">):</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># 表面记忆</span>
+        <span class="s1">&#39;verbatim_memorization&#39;</span><span class="p">:</span> <span class="n">test_exact_reproduction</span><span class="p">(</span><span class="n">model</span><span class="p">),</span>
+
+        <span class="c1"># 语义记忆</span>
+        <span class="s1">&#39;semantic_memorization&#39;</span><span class="p">:</span> <span class="n">test_paraphrase_invariance</span><span class="p">(</span><span class="n">model</span><span class="p">),</span>
+
+        <span class="c1"># 隐私泄露风险</span>
+        <span class="s1">&#39;privacy_risk&#39;</span><span class="p">:</span> <span class="n">membership_inference_score</span><span class="p">(</span><span class="n">model</span><span class="p">),</span>
+
+        <span class="c1"># 知识固化程度</span>
+        <span class="s1">&#39;knowledge_rigidity&#39;</span><span class="p">:</span> <span class="n">test_fact_flexibility</span><span class="p">(</span><span class="n">model</span><span class="p">),</span>
+
+        <span class="c1"># 分布记忆</span>
+        <span class="s1">&#39;distribution_memorization&#39;</span><span class="p">:</span> <span class="n">test_style_mimicry</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="c1"># 综合记忆化分数</span>
+    <span class="n">total_score</span> <span class="o">=</span> <span class="n">weighted_average</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">{</span>
+        <span class="s1">&#39;verbatim&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s1">&#39;semantic&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="s1">&#39;privacy&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s1">&#39;rigidity&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="s1">&#39;distribution&#39;</span><span class="p">:</span> <span class="mf">0.1</span>
+    <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">total_score</span>
+</code></pre></div>
+
+<ol start="5">
+<li><strong>缓解策略验证</strong></li>
+</ol>
+<p>测试不同训练技术的去记忆化效果：</p>
+<ul>
+<li>Dropout 率对记忆化的影响</li>
+<li>差分隐私训练的效果</li>
+<li>数据增强的作用</li>
+<li>正则化强度的影响</li>
+</ul>
+<p>通过 A/B 对比实验量化各策略的效果。</p>
+</details>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter7.html" class="nav-link prev">← 第七章：训练循环与迭代优化</a><a href="chapter9.html" class="nav-link next">第九章：生产部署与监控 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第三章：数据工程</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">LLM 后训练实验设计指南</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第一章：后训练基础理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第二章：实验代码基础设施</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第三章：数据工程</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第四章：纯语言任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第五章：多模态任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第六章：强化学习与人类反馈</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第七章：训练循环与迭代优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第八章：评估与基准测试</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第九章：生产部署与监控</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第十章：案例研究与最佳实践</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="_1">第三章：数据工程</h1>
+<h2 id="_2">本章概览</h2>
+<p>数据是后训练的基石。与预训练阶段追求规模和多样性不同，后训练数据工程聚焦于质量、对齐和任务覆盖。本章深入探讨后训练数据的全生命周期管理：从高质量指令数据的构造，到标注体系的设计，再到数据飞轮的搭建。我们将结合实际案例，阐述如何构建一个可持续、可扩展的数据工程体系，支撑模型能力的持续迭代。</p>
+<p><strong>学习目标</strong>：</p>
+<ul>
+<li>掌握高质量指令数据的设计原则和构造方法</li>
+<li>理解标注规范的制定流程和质量控制机制</li>
+<li>学会搭建数据飞轮，实现数据的自动化迭代</li>
+<li>掌握合成数据生成的各类技术和评估方法</li>
+<li>理解数据配比和课程学习在后训练中的应用</li>
+</ul>
+<h2 id="31">3.1 高质量指令数据的构造方法</h2>
+<h3 id="311">3.1.1 指令数据的核心要素</h3>
+<p>高质量的指令数据应包含三个核心要素：</p>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────┐
+│         指令数据三要素                │
+├─────────────────────────────────────┤
+│  1. 指令(Instruction)               │
+│     - 清晰的任务描述                 │
+│     - 明确的约束条件                 │
+│     - 期望的输出格式                 │
+│                                     │
+│  2. 输入(Input)                     │
+│     - 任务相关的上下文               │
+│     - 必要的背景信息                 │
+│     - 多模态内容(可选)               │
+│                                     │
+│  3. 输出(Output)                    │
+│     - 高质量的标准答案               │
+│     - 思维过程(对于推理任务)         │
+│     - 多样化的表达方式               │
+└─────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="312">3.1.2 数据源的选择策略</h3>
+<ol>
+<li><strong>人工构造数据</strong></li>
+</ol>
+<p>优势：质量可控、任务针对性强
+劣势：成本高、规模受限</p>
+<p>构造原则：</p>
+<ul>
+<li><strong>任务覆盖完整性</strong>：系统性地覆盖目标能力矩阵</li>
+<li><strong>难度梯度设计</strong>：从简单到复杂的渐进式分布</li>
+<li><strong>边界案例包含</strong>：刻意包含异常和边界情况</li>
+</ul>
+<ol start="2">
+<li><strong>现有数据改造</strong></li>
+</ol>
+<p>从高质量的文本语料（如教科书、技术文档）中提取和改造：</p>
+<div class="codehilite"><pre><span></span><code>原始文本 → 问答对提取 → 指令格式化 → 质量筛选
+         ↓
+    信息抽取规则
+    (NER, 关系抽取等)
+</code></pre></div>
+
+<ol start="3">
+<li><strong>模型生成数据</strong></li>
+</ol>
+<p>利用强大的基础模型生成训练数据：</p>
+<div class="codehilite"><pre><span></span><code><span class="nx">种子任务</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">LLM生成</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">人工验证</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">自动扩展</span>
+<span class="w">         </span><span class="err">↓</span><span class="w">            </span><span class="err">↓</span>
+<span class="w">    </span><span class="k">Self</span><span class="o">-</span><span class="nx">Instruct</span><span class="w">  </span><span class="nx">质量评分模型</span>
+</code></pre></div>
+
+<h3 id="313">3.1.3 数据多样性设计</h3>
+<p>📌 <strong>多样性维度</strong>：</p>
+<ol>
+<li>
+<p><strong>任务类型多样性</strong>
+   - 生成类：创作、翻译、总结
+   - 理解类：分类、抽取、问答
+   - 推理类：数学、逻辑、代码</p>
+</li>
+<li>
+<p><strong>领域多样性</strong>
+   - 通用知识 vs 专业领域
+   - 正式语境 vs 日常对话
+   - 不同文化背景</p>
+</li>
+<li>
+<p><strong>复杂度多样性</strong>
+   - 单轮 vs 多轮
+   - 简单指令 vs 复合任务
+   - 短文本 vs 长文本</p>
+</li>
+</ol>
+<h3 id="314">3.1.4 数据质量评估框架</h3>
+<p>建立多维度的质量评估体系：</p>
+<p>$$Q_{data} = \alpha \cdot Q_{correctness} + \beta \cdot Q_{helpfulness} + \gamma \cdot Q_{harmlessness} + \delta \cdot Q_{diversity}$$
+其中：</p>
+<ul>
+<li>$Q_{correctness}$：事实准确性得分</li>
+<li>$Q_{helpfulness}$：有用性得分  </li>
+<li>$Q_{harmlessness}$：安全性得分</li>
+<li>$Q_{diversity}$：多样性得分</li>
+<li>$\alpha, \beta, \gamma, \delta$：权重系数，满足 $\sum = 1$</li>
+</ul>
+<h2 id="32">3.2 标注规范设计与质量控制</h2>
+<h3 id="321">3.2.1 标注规范的层次化设计</h3>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────┐
+│          标注规范层次结构             │
+├─────────────────────────────────────┤
+│  Level 1: 基础规范                   │
+│  - 格式要求                          │
+│  - 长度限制                          │
+│  - 语言风格                          │
+├─────────────────────────────────────┤
+│  Level 2: 任务规范                   │
+│  - 任务特定要求                      │
+│  - 评分标准                          │
+│  - 示例案例                          │
+├─────────────────────────────────────┤
+│  Level 3: 质量规范                   │
+│  - 准确性标准                        │
+│  - 完整性要求                        │
+│  - 一致性检查                        │
+├─────────────────────────────────────┤
+│  Level 4: 安全规范                   │
+│  - 有害内容过滤                      │
+│  - 偏见检测                          │
+│  - 隐私保护                          │
+└─────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="322">3.2.2 标注者管理体系</h3>
+<ol>
+<li><strong>标注者选择与培训</strong></li>
+</ol>
+<ul>
+<li><strong>背景筛选</strong>：根据任务需求选择合适背景的标注者</li>
+<li><strong>培训流程</strong>：</li>
+</ul>
+<div class="codehilite"><pre><span></span><code>理论学习 → 案例练习 → 测试考核 → 正式标注 → 持续反馈
+</code></pre></div>
+
+<ul>
+<li><strong>能力分级</strong>：初级、中级、高级标注者的任务分配</li>
+</ul>
+<ol start="2">
+<li><strong>标注一致性保证</strong></li>
+</ol>
+<p>Inter-Annotator Agreement (IAA) 计算：
+$$\kappa = \frac{P_o - P_e}{1 - P_e}$$
+其中：</p>
+<ul>
+<li>$P_o$：观察到的一致性比例</li>
+<li>$P_e$：随机一致性的期望比例</li>
+</ul>
+<p>目标：$\kappa &gt; 0.8$ 表示高度一致</p>
+<h3 id="323">3.2.3 质量控制机制</h3>
+<ol>
+<li><strong>多重标注策略</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code>任务 → 标注者A → 结果A ↘
+     → 标注者B → 结果B → 仲裁/投票 → 最终结果
+     → 标注者C → 结果C ↗
+</code></pre></div>
+
+<ol start="2">
+<li><strong>质量抽检流程</strong></li>
+</ol>
+<ul>
+<li><strong>随机抽检</strong>：按比例随机抽取样本复核</li>
+<li><strong>定向抽检</strong>：针对特定标注者或任务类型</li>
+<li><strong>交叉验证</strong>：标注者互相检查</li>
+</ul>
+<ol start="3">
+<li><strong>动态质量评分</strong></li>
+</ol>
+<p>标注者质量得分更新：
+$$Q_t = \lambda \cdot Q_{t-1} + (1-\lambda) \cdot q_t$$
+其中：</p>
+<ul>
+<li>$Q_t$：时刻 $t$ 的质量得分</li>
+<li>$q_t$：当前批次的质量评分</li>
+<li>$\lambda$：历史权重因子（典型值 0.7-0.9）</li>
+</ul>
+<h3 id="324">3.2.4 标注工具与平台</h3>
+<p><strong>关键功能需求</strong>：</p>
+<ol>
+<li><strong>任务分发</strong>：智能分配、负载均衡</li>
+<li><strong>进度追踪</strong>：实时监控、瓶颈识别</li>
+<li><strong>版本管理</strong>：标注历史、变更追踪</li>
+<li><strong>协作功能</strong>：讨论、争议解决</li>
+<li><strong>自动化辅助</strong>：预标注、智能提示</li>
+</ol>
+<p>⚠️ <strong>常见陷阱</strong>：</p>
+<ul>
+<li>过度依赖单一标注源</li>
+<li>忽视标注者疲劳导致的质量下降</li>
+<li>标注规范过于复杂导致理解偏差</li>
+<li>缺乏及时的反馈循环</li>
+</ul>
+<h2 id="33-data-flywheel">3.3 数据飞轮（Data Flywheel）搭建</h2>
+<h3 id="331">3.3.1 数据飞轮的核心理念</h3>
+<p>数据飞轮是一个自我强化的循环系统，通过模型部署收集新数据，不断改进模型性能：</p>
+<div class="codehilite"><pre><span></span><code>     ┌──────────────────┐
+     │   1. 模型部署     │
+     │   收集用户交互    │
+     └────────┬─────────┘
+              ↓
+     ┌──────────────────┐
+     │   2. 数据筛选     │
+     │   识别高价值样本  │
+     └────────┬─────────┘
+              ↓
+     ┌──────────────────┐
+     │   3. 数据标注     │
+     │   人工/自动标注   │
+     └────────┬─────────┘
+              ↓
+     ┌──────────────────┐
+     │   4. 模型训练     │
+     │   增量/全量训练   │
+     └────────┬─────────┘
+              ↓
+     ┌──────────────────┐
+     │   5. 评估验证     │
+     │   A/B测试         │
+     └────────┬─────────┘
+              ↓
+         循环继续 ←────────┘
+</code></pre></div>
+
+<h3 id="332">3.3.2 数据收集策略</h3>
+<ol>
+<li><strong>主动收集</strong></li>
+</ol>
+<ul>
+<li><strong>用户反馈按钮</strong>：👍/👎 快速反馈</li>
+<li><strong>详细评价表单</strong>：结构化的质量评估</li>
+<li><strong>对比评测</strong>：A/B 模型输出对比</li>
+</ul>
+<ol start="2">
+<li><strong>被动收集</strong></li>
+</ol>
+<ul>
+<li><strong>交互日志</strong>：用户行为序列分析</li>
+<li><strong>修改痕迹</strong>：用户对输出的编辑</li>
+<li><strong>使用模式</strong>：高频查询、重试行为</li>
+</ul>
+<ol start="3">
+<li><strong>隐式信号提取</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码示例</span>
+<span class="n">value_score</span> <span class="o">=</span> <span class="n">α</span> <span class="o">*</span> <span class="n">dwell_time</span> <span class="o">+</span> 
+              <span class="n">β</span> <span class="o">*</span> <span class="n">copy_rate</span> <span class="o">+</span> 
+              <span class="n">γ</span> <span class="o">*</span> <span class="n">share_rate</span> <span class="o">-</span> 
+              <span class="n">δ</span> <span class="o">*</span> <span class="n">regeneration_rate</span>
+</code></pre></div>
+
+<h3 id="333">3.3.3 高价值数据识别</h3>
+<p><strong>价值评分模型</strong>：
+$$V(x) = w_1 \cdot \text{Uncertainty}(x) + w_2 \cdot \text{Diversity}(x) + w_3 \cdot \text{Difficulty}(x) + w_4 \cdot \text{Frequency}(x)$$
+其中：</p>
+<ul>
+<li><strong>Uncertainty</strong>：模型预测的不确定性（熵）</li>
+<li><strong>Diversity</strong>：与现有数据的差异度</li>
+<li><strong>Difficulty</strong>：任务复杂度评分</li>
+<li><strong>Frequency</strong>：查询频率或重要性</li>
+</ul>
+<p><strong>筛选策略</strong>：</p>
+<ol>
+<li><strong>不确定性采样</strong>：选择模型最不确定的样本</li>
+<li><strong>多样性采样</strong>：最大化数据集的覆盖度</li>
+<li><strong>对抗样本挖掘</strong>：找出模型失败的案例</li>
+<li><strong>边界探索</strong>：接近决策边界的样本</li>
+</ol>
+<h3 id="334">3.3.4 自动化标注流水线</h3>
+<p><strong>混合标注策略</strong>：</p>
+<div class="codehilite"><pre><span></span><code>          高置信度
+新数据 → 模型预标注 → 自动采纳
+                   ↘
+                    中置信度 → 人工复核 → 标注结果
+                   ↗
+         低置信度 → 人工标注
+</code></pre></div>
+
+<p><strong>置信度校准</strong>：</p>
+<p>使用温度缩放（Temperature Scaling）校准模型置信度：
+$$p_i^{calibrated} = \frac{\exp(z_i/T)}{\sum_j \exp(z_j/T)}$$
+其中 $T$ 是通过验证集优化的温度参数。</p>
+<h3 id="335">3.3.5 增量训练与版本管理</h3>
+<p><strong>增量训练策略</strong>：</p>
+<ol>
+<li><strong>持续微调</strong>：在新数据上继续训练</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>Loss = λ <span class="gs">* L_new + (1-λ) *</span> L_replay
+</code></pre></div>
+
+<ol start="2">
+<li><strong>经验回放</strong>：混合历史数据防止遗忘</li>
+<li><strong>弹性权重巩固（EWC）</strong>：保护重要参数</li>
+</ol>
+<p><strong>数据版本管理</strong>：</p>
+<div class="codehilite"><pre><span></span><code>data_v1.0/
+├── raw/           # 原始数据
+├── processed/     # 处理后数据
+├── splits/        # 训练/验证/测试划分
+├── metadata.json  # 数据集元信息
+└── changelog.md   # 变更记录
+
+data_v1.1/
+├── incremental/   # 增量数据
+├── merged/        # 合并后完整数据
+└── diff_report/   # 变更分析
+</code></pre></div>
+
+<p>💡 <strong>实用技巧</strong>：</p>
+<ul>
+<li>保持 10-20% 的验证集稳定，用于长期性能追踪</li>
+<li>使用数据哈希值追踪数据血缘</li>
+<li>定期进行全量重训，重置模型状态</li>
+</ul>
+<h2 id="34">3.4 合成数据生成策略</h2>
+<h3 id="341">3.4.1 合成数据的价值与挑战</h3>
+<p><strong>价值</strong>：</p>
+<ul>
+<li>规模化：低成本大规模生成</li>
+<li>可控性：精确控制数据特征</li>
+<li>隐私性：避免真实数据隐私问题</li>
+<li>平衡性：补充稀有类别数据</li>
+</ul>
+<p><strong>挑战</strong>：</p>
+<ul>
+<li>质量保证：避免错误传播</li>
+<li>多样性：防止模式坍缩</li>
+<li>真实性：保持与真实分布一致</li>
+</ul>
+<h3 id="342">3.4.2 生成方法分类</h3>
+<ol>
+<li><strong>模板基础生成</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">template</span> <span class="o">=</span> <span class="s2">&quot;将下列</span><span class="si">{语言A}</span><span class="s2">翻译成</span><span class="si">{语言B}</span><span class="s2">：</span><span class="si">{文本}</span><span class="s2">&quot;</span>
+<span class="n">instances</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span><span class="s2">&quot;语言A&quot;</span><span class="p">:</span> <span class="s2">&quot;英文&quot;</span><span class="p">,</span> <span class="s2">&quot;语言B&quot;</span><span class="p">:</span> <span class="s2">&quot;中文&quot;</span><span class="p">,</span> <span class="s2">&quot;文本&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">source_texts</span>
+<span class="p">]</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>扰动基础生成</strong></li>
+</ol>
+<p>原始样本通过系统性扰动生成变体：</p>
+<ul>
+<li><strong>词级扰动</strong>：同义词替换、插入、删除</li>
+<li><strong>句级扰动</strong>：改写、倒装、拆分合并</li>
+<li><strong>语义扰动</strong>：否定、条件变换、视角转换</li>
+</ul>
+<ol start="3">
+<li><strong>模型基础生成</strong></li>
+</ol>
+<p>利用大模型生成训练数据：</p>
+<div class="codehilite"><pre><span></span><code><span class="err">┌────────────────────────────────┐</span>
+<span class="err">│</span><span class="w">     </span><span class="k">Self</span><span class="o">-</span><span class="nx">Instruct</span><span class="w"> </span><span class="nx">Pipeline</span><span class="w">     </span><span class="err">│</span>
+<span class="err">├────────────────────────────────┤</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">1</span><span class="p">.</span><span class="w"> </span><span class="nx">种子任务</span><span class="w"> </span><span class="p">(</span><span class="mi">175</span><span class="nx">个</span><span class="p">)</span><span class="w">             </span><span class="err">│</span>
+<span class="err">│</span><span class="w">    </span><span class="err">↓</span><span class="w">                           </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">2</span><span class="p">.</span><span class="w"> </span><span class="nx">指令生成</span><span class="w"> </span><span class="p">(</span><span class="nx">GPT生成新指令</span><span class="p">)</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">    </span><span class="err">↓</span><span class="w">                           </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">3</span><span class="p">.</span><span class="w"> </span><span class="nx">指令过滤</span><span class="w"> </span><span class="p">(</span><span class="nx">去重</span><span class="err">、</span><span class="nx">质量筛选</span><span class="p">)</span><span class="w">    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">    </span><span class="err">↓</span><span class="w">                           </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">4</span><span class="p">.</span><span class="w"> </span><span class="nx">实例生成</span><span class="w"> </span><span class="p">(</span><span class="nx">输入输出对</span><span class="p">)</span><span class="w">        </span><span class="err">│</span>
+<span class="err">│</span><span class="w">    </span><span class="err">↓</span><span class="w">                           </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">5</span><span class="p">.</span><span class="w"> </span><span class="nx">质量验证</span><span class="w">                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">    </span><span class="err">↓</span><span class="w">                           </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">6</span><span class="p">.</span><span class="w"> </span><span class="nx">加入种子池</span><span class="w"> </span><span class="p">(</span><span class="nx">迭代</span><span class="p">)</span><span class="w">           </span><span class="err">│</span>
+<span class="err">└────────────────────────────────┘</span>
+</code></pre></div>
+
+<h3 id="343">3.4.3 知识蒸馏与数据增强</h3>
+<p><strong>知识蒸馏流程</strong>：
+$$\mathcal{L}_{distill} = \alpha \cdot \mathcal{L}_{CE}(y, \hat{y}) + (1-\alpha) \cdot \mathcal{L}_{KL}(p_{teacher}, p_{student})$$
+其中：</p>
+<ul>
+<li>$\mathcal{L}_{CE}$：交叉熵损失（hard label）</li>
+<li>$\mathcal{L}_{KL}$：KL散度（soft label）</li>
+<li>$\alpha$：硬标签权重</li>
+</ul>
+<p><strong>数据增强技术</strong>：</p>
+<ol>
+<li><strong>回译增强</strong>（Back-translation）</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>原文 → 翻译到语言B → 翻译回语言A → 增强样本
+</code></pre></div>
+
+<ol start="2">
+<li><strong>链式思维增强</strong>（CoT Augmentation）</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>问题 → 生成推理步骤 → 验证答案 → 筛选高质量CoT
+</code></pre></div>
+
+<ol start="3">
+<li><strong>对比学习增强</strong>
+   生成正例和负例对：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>原始样本 → 正例（相似但不同）
+        → 负例（表面相似但语义不同）
+</code></pre></div>
+
+<h3 id="344">3.4.4 合成数据质量评估</h3>
+<p><strong>自动评估指标</strong>：</p>
+<ol>
+<li>
+<p><strong>困惑度过滤</strong>：
+$$PPL_{threshold} = \mu_{PPL} + k \cdot \sigma_{PPL}$$</p>
+</li>
+<li>
+<p><strong>多样性度量</strong>：
+   - N-gram多样性
+   - 语义嵌入多样性
+   - 句法结构多样性</p>
+</li>
+<li>
+<p><strong>一致性检验</strong>：
+   - 自洽性：多次生成的一致性
+   - 事实一致性：与知识库对比
+   - 逻辑一致性：推理链验证</p>
+</li>
+</ol>
+<p><strong>人工评估采样</strong>：</p>
+<p>采用分层采样确保覆盖：</p>
+<div class="codehilite"><pre><span></span><code>总体 → 按难度分层 → 按类型分层 → 随机采样 → 人工评估
+</code></pre></div>
+
+<p>⚠️ <strong>常见陷阱</strong>：</p>
+<ul>
+<li>过度依赖单一生成模型</li>
+<li>忽视生成数据的分布偏移</li>
+<li>缺乏系统性的质量控制</li>
+<li>合成数据比例过高导致性能退化</li>
+</ul>
+<h2 id="35">3.5 数据配比与课程学习</h2>
+<h3 id="351">3.5.1 数据配比的理论基础</h3>
+<p><strong>最优配比问题</strong>：</p>
+<p>给定 $K$ 类任务数据 $\{D_1, D_2, ..., D_K\}$，寻找最优混合比例 $\{\alpha_1, \alpha_2, ..., \alpha_K\}$：
+$$\min_{\alpha} \sum_{i=1}^{K} w_i \cdot \mathcal{L}_i(\theta; \alpha_i \cdot D_i)$$
+约束条件：$\sum_{i=1}^{K} \alpha_i = 1, \alpha_i \geq 0$</p>
+<p><strong>配比策略</strong>：</p>
+<ol>
+<li><strong>均匀配比</strong>：$\alpha_i = 1/K$</li>
+<li><strong>按量配比</strong>：$\alpha_i \propto |D_i|$</li>
+<li><strong>按性能配比</strong>：$\alpha_i \propto 1/\mathcal{L}_i$</li>
+<li><strong>动态配比</strong>：训练过程中调整</li>
+</ol>
+<h3 id="352">3.5.2 课程学习设计</h3>
+<p><strong>难度评估</strong>：</p>
+<div class="codehilite"><pre><span></span><code>难度指标 = f(长度, 复杂度, 稀有度, 歧义度)
+</code></pre></div>
+
+<p><strong>课程策略</strong>：</p>
+<ol>
+<li><strong>单调递增课程</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>简单样本 → 中等样本 → 困难样本
+</code></pre></div>
+
+<ol start="2">
+<li><strong>循环课程</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="err">第</span><span class="mi">1</span><span class="err">轮</span><span class="o">:</span><span class="w"> </span><span class="err">简单</span><span class="o">(</span><span class="mi">100</span><span class="o">%)</span>
+<span class="err">第</span><span class="mi">2</span><span class="err">轮</span><span class="o">:</span><span class="w"> </span><span class="err">简单</span><span class="o">(</span><span class="mi">50</span><span class="o">%)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="err">中等</span><span class="o">(</span><span class="mi">50</span><span class="o">%)</span>
+<span class="err">第</span><span class="mi">3</span><span class="err">轮</span><span class="o">:</span><span class="w"> </span><span class="err">简单</span><span class="o">(</span><span class="mi">25</span><span class="o">%)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="err">中等</span><span class="o">(</span><span class="mi">50</span><span class="o">%)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="err">困难</span><span class="o">(</span><span class="mi">25</span><span class="o">%)</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>自适应课程</strong>：
+   根据模型当前性能动态调整：
+$$p(x) \propto \exp(-\lambda \cdot |difficulty(x) - competence(model)|)$$</li>
+</ol>
+<h3 id="353">3.5.3 多任务数据混合</h3>
+<p><strong>混合粒度选择</strong>：</p>
+<ol>
+<li>
+<p><strong>样本级混合</strong>：每个batch包含多种任务
+   - 优点：梯度更新平滑
+   - 缺点：可能相互干扰</p>
+</li>
+<li>
+<p><strong>批次级混合</strong>：不同batch来自不同任务
+   - 优点：任务独立性好
+   - 缺点：可能导致震荡</p>
+</li>
+<li>
+<p><strong>阶段级混合</strong>：分阶段训练不同任务
+   - 优点：专注度高
+   - 缺点：易遗忘早期任务</p>
+</li>
+</ol>
+<p><strong>采样算法</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 温度采样</span>
+<span class="k">def</span> <span class="nf">temperature_sampling</span><span class="p">(</span><span class="n">task_sizes</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">task_sizes</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">temperature</span><span class="p">)</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">/</span> <span class="n">probs</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">probs</span>
+
+<span class="c1"># temperature &gt; 1: 更均匀</span>
+<span class="c1"># temperature &lt; 1: 更偏向大任务</span>
+<span class="c1"># temperature = 1: 按比例采样</span>
+</code></pre></div>
+
+<h3 id="354">3.5.4 数据配比的实验验证</h3>
+<p><strong>网格搜索法</strong>：</p>
+<div class="codehilite"><pre><span></span><code>配比实验矩阵：
+┌─────────────────────────────┐
+│ Task A │ Task B │ Task C │ Score │
+├────────┼────────┼────────┼───────┤
+│  0.33  │  0.33  │  0.34  │  0.85 │
+│  0.50  │  0.25  │  0.25  │  0.87 │
+│  0.25  │  0.50  │  0.25  │  0.86 │
+│  0.60  │  0.20  │  0.20  │  0.88 │ ← 最优
+└─────────────────────────────┘
+</code></pre></div>
+
+<p><strong>贝叶斯优化</strong>：</p>
+<p>使用高斯过程建模配比与性能的关系：
+$$f(\alpha) \sim \mathcal{GP}(\mu(\alpha), k(\alpha, \alpha'))$$</p>
+<p>通过最大化采集函数选择下一个实验点。</p>
+<p>💡 <strong>实用技巧</strong>：</p>
+<ul>
+<li>先用小规模实验快速探索配比空间</li>
+<li>关注任务间的协同效应和负迁移</li>
+<li>保留一定比例的"保护数据"防止能力退化</li>
+<li>使用早停避免过拟合某类任务</li>
+</ul>
+<h2 id="_3">本章小结</h2>
+<p>本章系统介绍了后训练数据工程的完整流程。核心要点包括：</p>
+<ol>
+<li>
+<p><strong>数据质量优于数量</strong>：精心设计的小规模高质量数据往往优于大规模低质量数据</p>
+</li>
+<li>
+<p><strong>标注体系是基石</strong>：完善的标注规范、质量控制和标注者管理决定数据质量上限</p>
+</li>
+<li>
+<p><strong>数据飞轮驱动迭代</strong>：通过部署-收集-标注-训练的循环实现持续改进</p>
+</li>
+<li>
+<p><strong>合成数据作为补充</strong>：合理使用合成数据可以提升效率，但需要严格的质量控制</p>
+</li>
+<li>
+<p><strong>配比与课程影响收敛</strong>：数据配比和课程设计直接影响训练效率和最终性能</p>
+</li>
+</ol>
+<p><strong>关键公式回顾</strong>：</p>
+<ul>
+<li>数据质量评分：$Q_{data} = \sum \omega_i \cdot Q_i$</li>
+<li>标注一致性：$\kappa = \frac{P_o - P_e}{1 - P_e}$</li>
+<li>知识蒸馏损失：$\mathcal{L} = \alpha \cdot \mathcal{L}_{CE} + (1-\alpha) \cdot \mathcal{L}_{KL}$</li>
+<li>最优配比：$\min_{\alpha} \sum w_i \cdot \mathcal{L}_i(\theta; \alpha_i \cdot D_i)$</li>
+</ul>
+<h2 id="_4">练习题</h2>
+<h3 id="_5">基础题</h3>
+<p><strong>练习 3.1</strong>：设计一个多轮对话任务的标注规范，包括格式要求、质量标准和评分细则。</p>
+<details>
+<summary>💡 提示</summary>
+<p>考虑以下要素：</p>
+<ul>
+<li>对话的连贯性和上下文依赖</li>
+<li>角色一致性</li>
+<li>信息的累积性</li>
+<li>错误传播的处理</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>标注规范应包括：</p>
+<ol>
+<li>
+<p><strong>格式规范</strong>：
+   - 明确的轮次标记
+   - 角色标识（用户/助手）
+   - 上下文窗口定义</p>
+</li>
+<li>
+<p><strong>质量维度</strong>：
+   - 相关性：回复是否针对当前问题
+   - 连贯性：是否与历史对话一致
+   - 信息性：是否提供有价值信息
+   - 自然度：语言是否流畅自然</p>
+</li>
+<li>
+<p><strong>评分标准</strong>：
+   - 5分制，每个维度独立评分
+   - 总分加权平均
+   - 低于3分需要重新标注</p>
+</li>
+<li>
+<p><strong>特殊情况处理</strong>：
+   - 话题转换的合理性判断
+   - 指代消解的准确性
+   - 多轮依赖的完整性检查</p>
+</li>
+</ol>
+</details>
+<p><strong>练习 3.2</strong>：计算两个标注者的 Cohen's Kappa 系数。标注者A和B对100个样本进行二分类标注，其中：</p>
+<ul>
+<li>两者都标注为正例：40个</li>
+<li>两者都标注为负例：35个  </li>
+<li>A正B负：15个</li>
+<li>A负B正：10个</li>
+</ul>
+<details>
+<summary>💡 提示</summary>
+<p>Kappa 公式：$\kappa = \frac{P_o - P_e}{1 - P_e}$</p>
+<p>其中：</p>
+<ul>
+<li>$P_o$ = 观察一致性</li>
+<li>$P_e$ = 期望一致性</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>计算步骤：</p>
+<ol>
+<li>
+<p><strong>观察一致性</strong>：
+   $P_o = \frac{40 + 35}{100} = 0.75$</p>
+</li>
+<li>
+<p><strong>边际概率</strong>：
+   - A标正例：$\frac{40 + 15}{100} = 0.55$
+   - B标正例：$\frac{40 + 10}{100} = 0.50$
+   - A标负例：$\frac{35 + 10}{100} = 0.45$
+   - B标负例：$\frac{35 + 15}{100} = 0.50$</p>
+</li>
+<li>
+<p><strong>期望一致性</strong>：
+   $P_e = 0.55 \times 0.50 + 0.45 \times 0.50 = 0.275 + 0.225 = 0.50$</p>
+</li>
+<li>
+<p><strong>Kappa系数</strong>：
+   $\kappa = \frac{0.75 - 0.50}{1 - 0.50} = \frac{0.25}{0.50} = 0.50$</p>
+</li>
+</ol>
+<p>结果：κ = 0.50，表示中等程度的一致性。</p>
+</details>
+<p><strong>练习 3.3</strong>：设计一个数据飞轮的最小可行版本（MVP），包括数据收集、筛选、标注和训练的完整流程。</p>
+<details>
+<summary>💡 提示</summary>
+<p>考虑：</p>
+<ul>
+<li>最简单的反馈机制</li>
+<li>自动化vs人工的平衡</li>
+<li>迭代周期的设定</li>
+<li>评估指标的选择</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>MVP 数据飞轮设计：</p>
+<ol>
+<li>
+<p><strong>数据收集（每日）</strong>：
+   - 用户查询日志
+   - 简单的👍/👎反馈
+   - 响应时间和重试次数</p>
+</li>
+<li>
+<p><strong>数据筛选（每周）</strong>：
+   - 筛选标准：</p>
+<ul>
+<li>所有👎的样本</li>
+<li>响应时间&gt;5秒的样本</li>
+<li>重试&gt;2次的样本</li>
+<li>每周选择Top 100样本</li>
+</ul>
+</li>
+<li>
+<p><strong>标注流程（每周）</strong>：
+   - 2名标注者独立标注
+   - 不一致的由第3人仲裁
+   - 生成改进的回复</p>
+</li>
+<li>
+<p><strong>模型更新（每两周）</strong>：
+   - 累积200个新样本
+   - 混合10%历史数据
+   - 增量训练2个epoch</p>
+</li>
+<li>
+<p><strong>评估验证</strong>：
+   - 保持固定测试集
+   - A/B测试（5%流量）
+   - 关键指标：满意度提升&gt;2%则全量</p>
+</li>
+</ol>
+</details>
+<h3 id="_6">挑战题</h3>
+<p><strong>练习 3.4</strong>：设计一个自适应的数据配比算法，能够根据模型在不同任务上的表现动态调整训练数据的采样比例。</p>
+<details>
+<summary>💡 提示</summary>
+<p>考虑：</p>
+<ul>
+<li>如何度量各任务的学习进度</li>
+<li>如何平衡探索与利用</li>
+<li>如何避免某些任务被"饿死"</li>
+<li>如何处理任务间的依赖关系</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>自适应配比算法设计：</p>
+<ol>
+<li><strong>性能追踪</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">performance</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">exponential_moving_average</span><span class="p">(</span>
+    <span class="n">current_loss</span><span class="p">,</span> 
+    <span class="n">historical_performance</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span>
+<span class="p">)</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>学习进度评估</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">progress</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">current_loss</span> <span class="o">/</span> <span class="n">initial_loss</span><span class="p">)</span>
+<span class="n">learning_rate</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">(</span><span class="n">progress</span><span class="p">)</span> <span class="o">/</span> <span class="n">d</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>配比更新规则</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 基础配比</span>
+<span class="n">base_ratio</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">num_tasks</span>
+
+<span class="c1"># 性能调整项</span>
+<span class="n">perf_adjust</span> <span class="o">=</span> <span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="n">performance</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">)</span>
+
+<span class="c1"># 进度调整项</span>
+<span class="n">progress_adjust</span> <span class="o">=</span> <span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="n">learning_rate</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">)</span>
+
+<span class="c1"># 最终配比</span>
+<span class="n">ratio</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_ratio</span> <span class="o">+</span> 
+              <span class="n">α</span> <span class="o">*</span> <span class="n">perf_adjust</span> <span class="o">+</span> 
+              <span class="n">β</span> <span class="o">*</span> <span class="n">progress_adjust</span>
+
+<span class="c1"># 归一化</span>
+<span class="n">ratio</span> <span class="o">=</span> <span class="n">ratio</span> <span class="o">/</span> <span class="n">ratio</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+<span class="c1"># 保底机制</span>
+<span class="n">ratio</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ratio</span><span class="p">,</span> <span class="n">min_ratio</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="4">
+<li>
+<p><strong>探索机制</strong>：
+   - 每N个epoch随机提升某个任务比例
+   - 使用ε-greedy策略
+   - 记录探索结果用于未来决策</p>
+</li>
+<li>
+<p><strong>约束条件</strong>：
+   - 最小比例：min_ratio = 0.05
+   - 最大比例：max_ratio = 0.5
+   - 平滑更新：限制相邻epoch的变化率</p>
+</li>
+</ol>
+</details>
+<p><strong>练习 3.5</strong>：设计一个合成数据质量评估系统，能够自动识别和过滤低质量的生成数据。</p>
+<details>
+<summary>💡 提示</summary>
+<p>从多个维度评估：</p>
+<ul>
+<li>语言质量</li>
+<li>事实准确性</li>
+<li>任务相关性</li>
+<li>与真实数据的分布差异</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>质量评估系统设计：</p>
+<ol>
+<li><strong>多维度评分器</strong>：</li>
+</ol>
+<p>a) <strong>流畅度评分</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">fluency</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">perplexity</span> <span class="o">/</span> <span class="n">baseline_ppl</span><span class="p">)</span>
+</code></pre></div>
+
+<p>b) <strong>多样性评分</strong>：
+   <code>python
+   diversity = (unique_ngrams / total_ngrams) * 
+              (1 - self_bleu_score)</code></p>
+<p>c) <strong>一致性评分</strong>：
+   <code>python
+   # 多次生成的一致性
+   consistency = mean_pairwise_similarity(
+       multiple_generations
+   )</code></p>
+<p>d) <strong>相关性评分</strong>：
+   <code>python
+   relevance = cosine_similarity(
+       task_embedding, 
+       response_embedding
+   )</code></p>
+<ol start="2">
+<li><strong>异常检测</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 使用孤立森林检测异常</span>
+<span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="kn">import</span> <span class="n">IsolationForest</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="n">extract_features</span><span class="p">(</span><span class="n">synthetic_data</span><span class="p">)</span>
+<span class="n">detector</span> <span class="o">=</span> <span class="n">IsolationForest</span><span class="p">(</span><span class="n">contamination</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">outliers</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>分布匹配</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># KL散度检测分布偏移</span>
+<span class="n">kl_div</span> <span class="o">=</span> <span class="n">kl_divergence</span><span class="p">(</span>
+    <span class="n">real_data_distribution</span><span class="p">,</span>
+    <span class="n">synthetic_data_distribution</span>
+<span class="p">)</span>
+
+<span class="k">if</span> <span class="n">kl_div</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+    <span class="n">flag_as_distribution_shift</span><span class="p">()</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>集成决策</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">quality_score</span> <span class="o">=</span> <span class="n">weighted_sum</span><span class="p">([</span>
+    <span class="n">fluency</span> <span class="o">*</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="n">diversity</span> <span class="o">*</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="n">consistency</span> <span class="o">*</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="n">relevance</span> <span class="o">*</span> <span class="mf">0.3</span>
+<span class="p">])</span>
+
+<span class="k">if</span> <span class="n">quality_score</span> <span class="o">&lt;</span> <span class="mf">0.6</span> <span class="ow">or</span> <span class="n">is_outlier</span><span class="p">:</span>
+    <span class="n">filter_out</span><span class="p">()</span>
+</code></pre></div>
+
+<ol start="5">
+<li><strong>人工验证采样</strong>：
+   - 高置信度通过：直接使用
+   - 中置信度：按比例采样验证
+   - 低置信度：全部人工审核</li>
+</ol>
+</details>
+<p><strong>练习 3.6</strong>：给定一个包含10个不同难度等级任务的数据集，设计一个课程学习策略，使模型训练效率最大化。</p>
+<details>
+<summary>💡 提示</summary>
+<p>考虑：</p>
+<ul>
+<li>难度评估的客观指标</li>
+<li>课程的平滑过渡</li>
+<li>防止灾难性遗忘</li>
+<li>收敛速度vs最终性能的权衡</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>课程学习策略设计：</p>
+<ol>
+<li><strong>难度量化</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">difficulty</span> <span class="o">=</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">length_score</span> <span class="o">+</span> 
+             <span class="mf">0.2</span> <span class="o">*</span> <span class="n">vocabulary_score</span> <span class="o">+</span>
+             <span class="mf">0.3</span> <span class="o">*</span> <span class="n">reasoning_steps</span> <span class="o">+</span>
+             <span class="mf">0.2</span> <span class="o">*</span> <span class="n">ambiguity_score</span>
+</code></pre></div>
+
+<ol start="2">
+<li>
+<p><strong>分桶策略</strong>：
+   - Level 1-3: 基础任务（30%）
+   - Level 4-6: 中级任务（40%）
+   - Level 7-10: 高级任务（30%）</p>
+</li>
+<li>
+<p><strong>渐进式课程</strong>：</p>
+</li>
+</ol>
+<p><strong>阶段1（Epoch 1-5）</strong>：</p>
+<div class="codehilite"><pre><span></span><code>Level 1-3: 70%
+Level 4-6: 25%
+Level 7-10: 5%
+</code></pre></div>
+
+<p><strong>阶段2（Epoch 6-10）</strong>：
+   <code>Level 1-3: 40%
+   Level 4-6: 40%
+   Level 7-10: 20%</code></p>
+<p><strong>阶段3（Epoch 11-15）</strong>：
+   <code>Level 1-3: 20%
+   Level 4-6: 40%
+   Level 7-10: 40%</code></p>
+<p><strong>阶段4（Epoch 16+）</strong>：
+   <code>均匀分布或基于性能的自适应采样</code></p>
+<ol start="4">
+<li>
+<p><strong>反遗忘机制</strong>：
+   - 每个阶段保留20%的前期数据
+   - 使用经验回放缓冲区
+   - 定期在早期任务上评估</p>
+</li>
+<li>
+<p><strong>早停条件</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="p">(</span><span class="n">val_loss_increase_count</span> <span class="o">&gt;</span> <span class="n">patience</span> <span class="ow">and</span>
+    <span class="n">all_levels_coverage</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">):</span>
+    <span class="n">stop_training</span><span class="p">()</span>
+</code></pre></div>
+
+<ol start="6">
+<li><strong>动态调整</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 基于学习曲线调整进度</span>
+<span class="k">if</span> <span class="n">learning_plateaued</span><span class="p">(</span><span class="n">level_k</span><span class="p">):</span>
+    <span class="n">increase_difficulty_ratio</span><span class="p">(</span><span class="n">level_k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+
+</details>
+<p><strong>练习 3.7</strong>：设计一个数据血缘追踪系统，能够追踪每个训练样本从原始数据到最终使用的完整历史。</p>
+<details>
+<summary>💡 提示</summary>
+<p>考虑：</p>
+<ul>
+<li>数据的版本控制</li>
+<li>变换操作的记录</li>
+<li>性能归因分析</li>
+<li>存储和查询效率</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>数据血缘系统设计：</p>
+<ol>
+<li><strong>数据模型</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">DataLineage</span><span class="p">:</span>
+    <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># 唯一标识</span>
+    <span class="n">source_id</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># 原始数据ID</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span>    <span class="c1"># 数据版本</span>
+
+    <span class="n">transformations</span><span class="p">:</span> <span class="n">List</span><span class="p">[{</span>
+        <span class="s1">&#39;operation&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+        <span class="s1">&#39;parameters&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="s1">&#39;operator&#39;</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># 人/模型</span>
+    <span class="p">}]</span>
+
+    <span class="n">quality_scores</span><span class="p">:</span> <span class="n">List</span><span class="p">[{</span>
+        <span class="s1">&#39;metric&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="p">}]</span>
+
+    <span class="n">usage_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[{</span>
+        <span class="s1">&#39;model_version&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;training_run&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;epoch&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;loss_contribution&#39;</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">}]</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>操作追踪</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="nd">@track_lineage</span>
+<span class="k">def</span> <span class="nf">transform_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">operation</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">operation</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">lineage</span><span class="o">.</span><span class="n">add_transformation</span><span class="p">({</span>
+        <span class="s1">&#39;input_hash&#39;</span><span class="p">:</span> <span class="nb">hash</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
+        <span class="s1">&#39;output_hash&#39;</span><span class="p">:</span> <span class="nb">hash</span><span class="p">(</span><span class="n">result</span><span class="p">),</span>
+        <span class="s1">&#39;operation&#39;</span><span class="p">:</span> <span class="n">operation</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+        <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">now</span><span class="p">()</span>
+    <span class="p">})</span>
+    <span class="k">return</span> <span class="n">result</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>版本管理</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Git-like 版本控制</span>
+<span class="n">data_version</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span>
+    <span class="n">data_content</span> <span class="o">+</span> <span class="n">parent_version</span>
+<span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">8</span><span class="p">]</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>查询接口</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 正向追踪</span>
+<span class="k">def</span> <span class="nf">trace_forward</span><span class="p">(</span><span class="n">sample_id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">lineage_db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">source_id</span><span class="o">=</span><span class="n">sample_id</span>
+    <span class="p">)</span>
+
+<span class="c1"># 反向追踪</span>
+<span class="k">def</span> <span class="nf">trace_backward</span><span class="p">(</span><span class="n">model_issue</span><span class="p">):</span>
+    <span class="n">problematic_samples</span> <span class="o">=</span> <span class="n">identify_issues</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">get_lineage</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">problematic_samples</span>
+    <span class="p">]</span>
+</code></pre></div>
+
+<ol start="5">
+<li><strong>性能归因</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">attribute_performance</span><span class="p">(</span><span class="n">model_degradation</span><span class="p">):</span>
+    <span class="c1"># 找出性能下降相关的数据变化</span>
+    <span class="n">recent_changes</span> <span class="o">=</span> <span class="n">get_recent_data_changes</span><span class="p">()</span>
+    <span class="n">correlation</span> <span class="o">=</span> <span class="n">calculate_correlation</span><span class="p">(</span>
+        <span class="n">recent_changes</span><span class="p">,</span>
+        <span class="n">model_degradation</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">rank_by_impact</span><span class="p">(</span><span class="n">correlation</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="6">
+<li><strong>存储优化</strong>：
+   - 使用图数据库存储血缘关系
+   - 定期压缩历史记录
+   - 只保留关键节点的完整数据</li>
+</ol>
+</details>
+<p><strong>练习 3.8</strong>：设计一个主动学习（Active Learning）策略，在标注预算有限的情况下选择最有价值的样本进行标注。</p>
+<details>
+<summary>💡 提示</summary>
+<p>结合多种选择策略：</p>
+<ul>
+<li>不确定性</li>
+<li>多样性  </li>
+<li>代表性</li>
+<li>预期模型改进</li>
+</ul>
+</details>
+<details>
+<summary>📝 参考答案</summary>
+<p>主动学习策略设计：</p>
+<ol>
+<li><strong>不确定性采样</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">uncertainty_sampling</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">unlabeled_data</span><span class="p">):</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">unlabeled_data</span><span class="p">)</span>
+
+    <span class="c1"># 熵值计算</span>
+    <span class="n">entropy</span> <span class="o">=</span> <span class="o">-</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">log</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">predictions</span><span class="p">)</span>
+
+    <span class="c1"># 最小置信度</span>
+    <span class="n">least_confidence</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+
+    <span class="c1"># 边界采样</span>
+    <span class="n">margin</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">top1_prob</span> <span class="o">-</span> <span class="n">top2_prob</span><span class="p">)</span>
+
+    <span class="n">uncertainty</span> <span class="o">=</span> <span class="n">α</span><span class="o">*</span><span class="n">entropy</span> <span class="o">+</span> <span class="n">β</span><span class="o">*</span><span class="n">least_confidence</span> <span class="o">+</span> <span class="n">γ</span><span class="o">/</span><span class="n">margin</span>
+    <span class="k">return</span> <span class="n">uncertainty</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>多样性采样</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">diversity_sampling</span><span class="p">(</span><span class="n">selected_samples</span><span class="p">,</span> <span class="n">candidate</span><span class="p">):</span>
+    <span class="c1"># 基于嵌入的多样性</span>
+    <span class="n">min_distance</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span>
+        <span class="n">cosine_distance</span><span class="p">(</span><span class="n">candidate_emb</span><span class="p">,</span> <span class="n">selected_emb</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">selected_emb</span> <span class="ow">in</span> <span class="n">selected_samples</span>
+    <span class="p">])</span>
+
+    <span class="c1"># 基于聚类的多样性</span>
+    <span class="n">cluster_coverage</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_clusters</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_clusters</span>
+
+    <span class="k">return</span> <span class="n">min_distance</span> <span class="o">*</span> <span class="n">cluster_coverage</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>代表性采样</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">representativeness</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">unlabeled_pool</span><span class="p">):</span>
+    <span class="c1"># 密度估计</span>
+    <span class="n">density</span> <span class="o">=</span> <span class="n">mean</span><span class="p">([</span>
+        <span class="n">similarity</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="n">unlabeled_pool</span>
+    <span class="p">])</span>
+
+    <span class="c1"># 中心性</span>
+    <span class="n">centrality</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">mean_distance_to_others</span>
+
+    <span class="k">return</span> <span class="n">density</span> <span class="o">*</span> <span class="n">centrality</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>预期模型改进</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">expected_model_change</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+    <span class="c1"># 预期梯度长度</span>
+    <span class="n">gradient</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+    <span class="n">egl</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">gradient</span><span class="p">)</span>
+
+    <span class="c1"># 预期误差减少</span>
+    <span class="n">eer</span> <span class="o">=</span> <span class="n">estimate_error_reduction</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">egl</span> <span class="o">+</span> <span class="n">eer</span>
+</code></pre></div>
+
+<ol start="5">
+<li><strong>混合策略</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">hybrid_active_learning</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span> 
+    <span class="n">unlabeled_data</span><span class="p">,</span> 
+    <span class="n">budget</span><span class="p">,</span>
+    <span class="n">selected</span><span class="o">=</span><span class="p">[]</span>
+<span class="p">):</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">unlabeled_data</span><span class="p">:</span>
+        <span class="n">u_score</span> <span class="o">=</span> <span class="n">uncertainty_sampling</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+        <span class="n">d_score</span> <span class="o">=</span> <span class="n">diversity_sampling</span><span class="p">(</span><span class="n">selected</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+        <span class="n">r_score</span> <span class="o">=</span> <span class="n">representativeness</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">unlabeled_data</span><span class="p">)</span>
+        <span class="n">e_score</span> <span class="o">=</span> <span class="n">expected_model_change</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+
+        <span class="c1"># 动态权重</span>
+        <span class="n">w1</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">budget</span><span class="o">*</span><span class="mf">0.3</span> <span class="k">else</span> <span class="mf">0.2</span>
+        <span class="n">w2</span> <span class="o">=</span> <span class="mf">0.2</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">budget</span><span class="o">*</span><span class="mf">0.3</span> <span class="k">else</span> <span class="mf">0.4</span>
+        <span class="n">w3</span> <span class="o">=</span> <span class="mf">0.2</span>
+        <span class="n">w4</span> <span class="o">=</span> <span class="mf">0.2</span>
+
+        <span class="n">total</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">u_score</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">d_score</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">r_score</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">e_score</span>
+        <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
+
+    <span class="c1"># 选择top-k</span>
+    <span class="n">top_indices</span> <span class="o">=</span> <span class="n">argsort</span><span class="p">(</span><span class="n">scores</span><span class="p">)[</span><span class="o">-</span><span class="n">budget</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">unlabeled_data</span><span class="p">[</span><span class="n">top_indices</span><span class="p">]</span>
+</code></pre></div>
+
+<ol start="6">
+<li><strong>批量选择优化</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 避免批次内冗余</span>
+<span class="k">def</span> <span class="nf">batch_selection</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="n">selected</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="n">argmax</span><span class="p">([</span>
+            <span class="n">score</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="n">λ</span><span class="o">*</span><span class="n">max_similarity</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">selected</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">candidates</span>
+        <span class="p">])</span>
+        <span class="n">selected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidates</span><span class="p">[</span><span class="n">best</span><span class="p">])</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">best</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">selected</span>
+</code></pre></div>
+
+</details>
+<h2 id="gotchas">常见陷阱与错误 (Gotchas)</h2>
+<h3 id="_7">数据相关陷阱</h3>
+<ol>
+<li>
+<p><strong>标注规范漂移</strong>
+   - 问题：随时间推移，标注标准逐渐偏离
+   - 解决：定期校准会议，维护标注示例库</p>
+</li>
+<li>
+<p><strong>数据泄露</strong>
+   - 问题：测试集信息泄露到训练集
+   - 解决：严格的数据隔离，使用时间戳分割</p>
+</li>
+<li>
+<p><strong>标注者偏见累积</strong>
+   - 问题：特定标注者的偏好被放大
+   - 解决：标注者轮换，交叉验证</p>
+</li>
+</ol>
+<h3 id="_8">合成数据陷阱</h3>
+<ol start="4">
+<li>
+<p><strong>模型坍缩</strong>
+   - 问题：用模型生成的数据训练导致多样性降低
+   - 解决：保持真实数据比例，定期注入新数据</p>
+</li>
+<li>
+<p><strong>错误放大</strong>
+   - 问题：生成数据中的错误被学习和放大
+   - 解决：严格的质量过滤，人工验证关键样本</p>
+</li>
+<li>
+<p><strong>分布偏移未察觉</strong>
+   - 问题：合成数据分布逐渐偏离真实分布
+   - 解决：持续监控分布指标，定期校准</p>
+</li>
+</ol>
+<h3 id="_9">工程实践陷阱</h3>
+<ol start="7">
+<li>
+<p><strong>数据版本混乱</strong>
+   - 问题：不同实验使用了不同版本的数据
+   - 解决：严格的版本管理，实验配置记录</p>
+</li>
+<li>
+<p><strong>增量训练的遗忘</strong>
+   - 问题：新数据训练后旧能力退化
+   - 解决：经验回放，弹性权重巩固</p>
+</li>
+<li>
+<p><strong>标注瓶颈</strong>
+   - 问题：标注速度跟不上数据产生速度
+   - 解决：分优先级标注，自动标注辅助</p>
+</li>
+<li>
+<p><strong>评估集污染</strong></p>
+<ul>
+<li>问题：评估集被用于训练决策</li>
+<li>解决：设置只有少数人知道的保留测试集</li>
+</ul>
+</li>
+</ol>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter2.html" class="nav-link prev">← 第二章：实验代码基础设施</a><a href="chapter4.html" class="nav-link next">第四章：纯语言任务实验设计 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

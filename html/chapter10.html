@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第十章：案例研究与最佳实践</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">LLM 后训练实验设计指南</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第一章：后训练基础理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第二章：实验代码基础设施</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第三章：数据工程</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第四章：纯语言任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第五章：多模态任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第六章：强化学习与人类反馈</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第七章：训练循环与迭代优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第八章：评估与基准测试</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第九章：生产部署与监控</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第十章：案例研究与最佳实践</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="_1">第十章：案例研究与最佳实践</h1>
+<p>本章通过四个真实的端到端案例，展示 LLM 后训练的完整实践流程。每个案例都涵盖从需求分析、数据准备、模型训练到部署监控的全链路，并详细剖析过程中的关键决策和技术细节。通过这些案例，您将学会如何将前九章的理论知识整合应用到实际项目中，掌握处理复杂工程挑战的系统方法。</p>
+<h2 id="_2">本章大纲</h2>
+<ol>
+<li>
+<p><strong>ChatGPT 类对话系统的完整实现</strong>
+   - 系统架构设计
+   - 数据收集与预处理
+   - SFT 基线训练
+   - RLHF 优化流程
+   - 安全性与对齐
+   - 部署与监控</p>
+</li>
+<li>
+<p><strong>多模态助手的训练流程</strong>
+   - 模态融合架构
+   - 数据对齐策略
+   - 渐进式训练
+   - 跨模态能力评估
+   - 推理优化</p>
+</li>
+<li>
+<p><strong>领域专家模型的构建</strong>
+   - 领域知识注入
+   - 专业数据采集
+   - 持续学习机制
+   - 性能基准设计
+   - 知识更新策略</p>
+</li>
+<li>
+<p><strong>常见失败模式与调试技巧</strong>
+   - 训练不稳定诊断
+   - 过拟合与欠拟合
+   - 灾难性遗忘
+   - 分布偏移处理
+   - 调试工具链</p>
+</li>
+</ol>
+<h2 id="_3">学习目标</h2>
+<p>完成本章学习后，您将能够：</p>
+<ol>
+<li>设计并实现生产级的对话系统，包括多轮对话管理和个性化优化</li>
+<li>构建支持视觉、语音等多模态输入的统一助手模型</li>
+<li>针对特定领域（医疗、法律、金融）定制高性能专家模型</li>
+<li>识别和解决后训练过程中的常见问题，建立系统的调试方法论</li>
+<li>评估不同技术路线的权衡，做出符合业务需求的架构决策</li>
+</ol>
+<p>让我们从第一个案例开始，深入了解 ChatGPT 类系统的构建过程。</p>
+<h2 id="101-chatgpt">10.1 ChatGPT 类对话系统的完整实现</h2>
+<p>构建一个生产级的对话系统需要系统化的工程方法。本节以一个真实的企业级助手项目为例，展示从零开始构建对话系统的完整流程。该系统最终达到了日活跃用户 100 万+，平均对话轮次 8.5 轮的生产指标。</p>
+<h3 id="1011">10.1.1 系统架构设计</h3>
+<h4 id="_4">整体架构</h4>
+<div class="codehilite"><pre><span></span><code>用户输入 → 预处理 → 安全检查 → 模型推理 → 后处理 → 响应输出
+     ↑                                              ↓
+     └─────────── 上下文管理（会话状态）──────────┘
+</code></pre></div>
+
+<h4 id="_5">关键组件设计</h4>
+<ol>
+<li><strong>会话管理器</strong></li>
+</ol>
+<p>会话状态的设计直接影响系统性能和用户体验。我们采用了分层缓存策略：</p>
+<ul>
+<li><strong>L1 缓存</strong>：Redis，存储最近 1000 个活跃会话</li>
+<li><strong>L2 缓存</strong>：PostgreSQL，完整会话历史</li>
+<li><strong>状态压缩</strong>：超过 10 轮的对话自动摘要</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="n">会话状态结构</span><span class="err">：</span>
+<span class="err">{</span>
+<span class="w">  </span><span class="nl">session_id</span><span class="p">:</span><span class="w"> </span><span class="nf">str</span><span class="p">,</span>
+<span class="w">  </span><span class="nf">user_id</span><span class="err">:</span><span class="w"> </span><span class="nf">str</span><span class="p">,</span>
+<span class="w">  </span><span class="nl">messages</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">[</span><span class="n">Message</span><span class="o">]</span><span class="p">,</span>
+<span class="w">  </span><span class="nl">context_summary</span><span class="p">:</span><span class="w"> </span><span class="nf">str</span><span class="p">,</span><span class="w">  </span><span class="err">#</span><span class="w"> </span><span class="n">自动生成的上下文摘要</span>
+<span class="w">  </span><span class="nl">metadata</span><span class="p">:</span><span class="w"> </span><span class="err">{</span>
+<span class="w">    </span><span class="nl">created_at</span><span class="p">:</span><span class="w"> </span><span class="nc">timestamp</span><span class="p">,</span>
+<span class="w">    </span><span class="nl">last_active</span><span class="p">:</span><span class="w"> </span><span class="nc">timestamp</span><span class="p">,</span>
+<span class="w">    </span><span class="nl">turn_count</span><span class="p">:</span><span class="w"> </span><span class="nc">int</span><span class="p">,</span>
+<span class="w">    </span><span class="nl">tokens_used</span><span class="p">:</span><span class="w"> </span><span class="nc">int</span>
+<span class="w">  </span><span class="err">}</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>提示工程框架</strong></li>
+</ol>
+<p>系统提示（System Prompt）的设计采用模块化结构：</p>
+<div class="codehilite"><pre><span></span><code><span class="err">基础人设</span><span class="w"> </span><span class="p">(</span><span class="mi">200</span><span class="w"> </span><span class="n">tokens</span><span class="p">)</span>
+<span class="w">  </span><span class="err">├──</span><span class="w"> </span><span class="err">角色定义</span>
+<span class="w">  </span><span class="err">├──</span><span class="w"> </span><span class="err">能力边界</span>
+<span class="w">  </span><span class="err">└──</span><span class="w"> </span><span class="err">行为准则</span>
+
+<span class="err">动态上下文</span><span class="w"> </span><span class="p">(</span><span class="n">variable</span><span class="p">)</span>
+<span class="w">  </span><span class="err">├──</span><span class="w"> </span><span class="err">用户画像</span>
+<span class="w">  </span><span class="err">├──</span><span class="w"> </span><span class="err">会话历史摘要</span>
+<span class="w">  </span><span class="err">└──</span><span class="w"> </span><span class="err">相关知识注入</span>
+
+<span class="err">任务指令</span><span class="w"> </span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="n">tokens</span><span class="p">)</span>
+<span class="w">  </span><span class="err">├──</span><span class="w"> </span><span class="err">当前任务描述</span>
+<span class="w">  </span><span class="err">└──</span><span class="w"> </span><span class="err">输出格式要求</span>
+</code></pre></div>
+
+<p>💡 <strong>实用技巧</strong>：将系统提示分解为静态和动态部分，静态部分可以预先编码并缓存，减少每次推理的 token 开销。</p>
+<h3 id="1012">10.1.2 数据收集与预处理</h3>
+<h4 id="_6">数据来源多样化</h4>
+<ol>
+<li>
+<p><strong>种子数据</strong>（10K 样本）
+   - 人工编写的高质量对话
+   - 涵盖 50+ 场景类别
+   - 每个样本经过 3 人交叉验证</p>
+</li>
+<li>
+<p><strong>用户交互数据</strong>（1M+ 样本）
+   - 真实用户对话日志
+   - 隐私脱敏处理
+   - 质量评分筛选（保留 top 30%）</p>
+</li>
+<li>
+<p><strong>合成数据</strong>（500K 样本）
+   - Self-Instruct 生成
+   - 主题控制的多样性采样
+   - 自动质量过滤</p>
+</li>
+</ol>
+<h4 id="_7">数据预处理管道</h4>
+<div class="codehilite"><pre><span></span><code>原始数据 → 清洗 → 标准化 → 质量评分 → 去重 → 平衡采样 → 训练集
+           ↓        ↓         ↓         ↓        ↓
+        噪声过滤  格式统一  启发式+模型  MinHash  类别均衡
+</code></pre></div>
+
+<p><strong>关键处理步骤</strong>：</p>
+<ol>
+<li>
+<p><strong>多轮对话拆分</strong>：
+   - 保持上下文连贯性
+   - 滑动窗口采样（stride=2）
+   - 最大上下文长度 2048 tokens</p>
+</li>
+<li>
+<p><strong>质量评分模型</strong>：
+   使用 BERT-based 分类器，评分维度包括：</p>
+</li>
+</ol>
+<ul>
+<li>相关性（0-1）</li>
+<li>流畅性（0-1）</li>
+<li>信息量（0-1）</li>
+<li>安全性（0-1）</li>
+</ul>
+<p>综合评分 = 0.3×相关性 + 0.2×流畅性 + 0.3×信息量 + 0.2×安全性</p>
+<ol start="3">
+<li><strong>去重策略</strong>：
+   - 完全匹配去重
+   - MinHash 近似去重（相似度阈值 0.85）
+   - 语义去重（嵌入向量余弦相似度 &gt; 0.95）</li>
+</ol>
+<p>⚠️ <strong>常见陷阱</strong>：过度清洗会导致数据分布过于狭窄，保留 5-10% 的"噪声"数据有助于提高模型鲁棒性。</p>
+<h3 id="1013-sft">10.1.3 SFT 基线训练</h3>
+<h4 id="_8">训练配置</h4>
+<p>基于 7B 参数的基座模型，SFT 训练配置：</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">training_config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">base_model</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;llama-2-7b&quot;</span>
+<span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2e-5</span>
+<span class="w">  </span><span class="nt">warmup_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<span class="w">  </span><span class="nt">total_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50000</span>
+<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128</span>
+<span class="w">  </span><span class="nt">gradient_accumulation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">  </span><span class="nt">max_length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2048</span>
+
+<span class="w">  </span><span class="c1"># 关键优化</span>
+<span class="w">  </span><span class="nt">gradient_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">mixed_precision</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;bf16&quot;</span>
+<span class="w">  </span><span class="nt">flash_attention</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="w">  </span><span class="c1"># 正则化</span>
+<span class="w">  </span><span class="nt">weight_decay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.01</span>
+<span class="w">  </span><span class="nt">dropout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">  </span><span class="nt">label_smoothing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+</code></pre></div>
+
+<h4 id="_9">训练策略</h4>
+<ol>
+<li><strong>课程学习</strong></li>
+</ol>
+<p>分三个阶段逐步增加任务难度：</p>
+<ul>
+<li><strong>阶段 1</strong>（20% steps）：单轮简单对话</li>
+<li><strong>阶段 2</strong>（40% steps）：多轮对话，无复杂推理</li>
+<li><strong>阶段 3</strong>（40% steps）：完整数据集，包含复杂任务</li>
+</ul>
+<ol start="2">
+<li><strong>动态采样</strong></li>
+</ol>
+<p>根据模型在验证集上的表现动态调整数据分布：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">dynamic_sampling_weight</span><span class="p">(</span><span class="n">category_loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;损失越大的类别，采样权重越高&quot;&quot;&quot;</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">category_loss</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>检查点策略</strong></li>
+</ol>
+<ul>
+<li>每 1000 步保存检查点</li>
+<li>保留验证集 loss 最低的 5 个检查点</li>
+<li>最终模型 = top-3 检查点的平均</li>
+</ul>
+<h4 id="_10">训练监控</h4>
+<p>实时监控的关键指标：</p>
+<ol>
+<li>
+<p><strong>训练指标</strong>
+   - Loss 曲线（平滑窗口=100）
+   - 梯度范数
+   - 学习率调度
+   - GPU 利用率</p>
+</li>
+<li>
+<p><strong>验证指标</strong>
+   - Perplexity
+   - BLEU-4 分数
+   - 响应多样性（Distinct-1/2）
+   - 安全性评分</p>
+</li>
+<li>
+<p><strong>在线指标</strong>（A/B 测试）
+   - 用户满意度评分
+   - 对话轮次
+   - 会话完成率
+   - 响应时间（P50/P95/P99）</p>
+</li>
+</ol>
+<h3 id="1014-rlhf">10.1.4 RLHF 优化流程</h3>
+<h4 id="_11">奖励模型训练</h4>
+<p><strong>数据收集</strong>：</p>
+<ol>
+<li>
+<p><strong>偏好标注</strong>（50K 对）
+   - 对于同一 prompt，生成 4-8 个响应
+   - 3 名标注员独立排序
+   - Bradley-Terry 模型聚合偏好</p>
+</li>
+<li>
+<p><strong>标注质量控制</strong>
+   - 标注员一致性检查（Fleiss' Kappa &gt; 0.6）
+   - 黄金标准测试（准确率 &gt; 85%）
+   - 异常标注自动检测</p>
+</li>
+</ol>
+<p><strong>模型架构</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">输入</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Encoder</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">CLS</span><span class="o">]</span><span class="w"> </span><span class="n">token</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Linear</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Scalar</span><span class="w"> </span><span class="n">Reward</span>
+<span class="w">         </span><span class="err">↓</span>
+<span class="w">    </span><span class="n">共享</span><span class="w"> </span><span class="n">SFT</span><span class="w"> </span><span class="n">模型参数</span><span class="err">（</span><span class="n">冻结前</span><span class="w"> </span><span class="n">N</span><span class="o">-</span><span class="mi">2</span><span class="w"> </span><span class="n">层</span><span class="err">）</span>
+</code></pre></div>
+
+<p><strong>训练技巧</strong>：</p>
+<ul>
+<li>使用 Focal Loss 处理偏好强度不平衡</li>
+<li>加入 KL 正则化防止奖励 hacking</li>
+<li>多任务学习：同时预测偏好和响应质量</li>
+</ul>
+<h4 id="ppo">PPO 训练</h4>
+<p><strong>PPO 配置</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">ppo_config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">kl_penalty</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">  </span><span class="nt">clip_range</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">  </span><span class="nt">value_loss_coef</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
+<span class="w">  </span><span class="nt">entropy_coef</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.01</span>
+
+<span class="w">  </span><span class="c1"># 采样策略</span>
+<span class="w">  </span><span class="nt">rollout_batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
+<span class="w">  </span><span class="nt">minibatch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+<span class="w">  </span><span class="nt">ppo_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+
+<span class="w">  </span><span class="c1"># 奖励设计</span>
+<span class="w">  </span><span class="nt">reward_components</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">preference_score</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.6</span>
+<span class="w">    </span><span class="nt">kl_penalty</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">    </span><span class="nt">length_penalty</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">    </span><span class="nt">safety_score</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+</code></pre></div>
+
+<p><strong>关键优化</strong>：</p>
+<ol>
+<li><strong>奖励归一化</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">rewards</span> <span class="o">=</span> <span class="p">(</span><span class="n">rewards</span> <span class="o">-</span> <span class="n">rewards</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="n">rewards</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>KL 散度自适应</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">kl_divergence</span> <span class="o">&gt;</span> <span class="n">target_kl</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">:</span>
+    <span class="n">kl_coef</span> <span class="o">*=</span> <span class="mf">1.5</span>
+<span class="k">elif</span> <span class="n">kl_divergence</span> <span class="o">&lt;</span> <span class="n">target_kl</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">:</span>
+    <span class="n">kl_coef</span> <span class="o">*=</span> <span class="mf">0.7</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>早停策略</strong>
+   - 验证集奖励不再提升
+   - KL 散度超过阈值
+   - 响应多样性显著下降</li>
+</ol>
+<p>📌 <strong>重要发现</strong>：PPO 训练中，保持 KL 散度在 1-3 之间通常能获得最佳的能力-对齐平衡。</p>
+<h3 id="1015">10.1.5 安全性与对齐</h3>
+<h4 id="_12">多层安全防护</h4>
+<div class="codehilite"><pre><span></span><code>输入安全检查 → 生成过程干预 → 输出安全过滤 → 人工审核（采样）
+      ↓              ↓               ↓              ↓
+  敏感词过滤    安全引导生成     毒性检测      异常上报
+</code></pre></div>
+
+<h4 id="constitutional-ai">Constitutional AI 实现</h4>
+<p>自我批评和改进循环：</p>
+<ol>
+<li><strong>初始响应生成</strong></li>
+<li><strong>自我批评</strong>："这个回答是否可能造成伤害？"</li>
+<li><strong>修订生成</strong>："请修改回答，使其更加有帮助且无害"</li>
+<li><strong>最终检查</strong>：外部安全分类器验证</li>
+</ol>
+<h4 id="_13">红队测试</h4>
+<p>系统化的对抗测试：</p>
+<ul>
+<li><strong>自动化攻击</strong>：使用对抗样本生成器</li>
+<li><strong>人工红队</strong>：安全专家定期测试</li>
+<li><strong>众包测试</strong>：付费用户尝试"越狱"</li>
+<li><strong>持续监控</strong>：生产环境异常检测</li>
+</ul>
+<h3 id="1016">10.1.6 部署与监控</h3>
+<h4 id="_14">服务架构</h4>
+<div class="codehilite"><pre><span></span><code>         负载均衡器
+              ↓
+    ┌─────────┴─────────┐
+    ↓                   ↓
+推理服务器集群      缓存层(Redis)
+    ↓                   ↓
+    └─────────┬─────────┘
+              ↓
+         模型服务
+    (TorchServe/Triton)
+</code></pre></div>
+
+<h4 id="_15">性能优化</h4>
+<ol>
+<li>
+<p><strong>模型优化</strong>
+   - INT8 量化（精度损失 &lt; 1%）
+   - Flash Attention
+   - KV Cache 优化
+   - 动态 batching</p>
+</li>
+<li>
+<p><strong>系统优化</strong>
+   - 请求级并发控制
+   - 自适应超时设置
+   - 预测性预加载
+   - 结果缓存（相似 query）</p>
+</li>
+</ol>
+<h4 id="_16">监控指标体系</h4>
+<p><strong>业务指标</strong>：</p>
+<ul>
+<li>DAU/MAU</li>
+<li>平均对话轮次</li>
+<li>用户满意度 NPS</li>
+<li>留存率</li>
+</ul>
+<p><strong>技术指标</strong>：</p>
+<ul>
+<li>QPS/TPS</li>
+<li>延迟分布（P50/P95/P99）</li>
+<li>错误率</li>
+<li>GPU 利用率</li>
+</ul>
+<p><strong>质量指标</strong>：</p>
+<ul>
+<li>响应相关性（在线评估）</li>
+<li>安全违规率</li>
+<li>幻觉检测率</li>
+<li>A/B 测试胜率</li>
+</ul>
+<h4 id="_17">故障恢复</h4>
+<ul>
+<li><strong>模型回滚</strong>：保留最近 3 个稳定版本</li>
+<li><strong>降级策略</strong>：高负载时切换到小模型</li>
+<li><strong>熔断机制</strong>：异常请求自动隔离</li>
+<li><strong>灾备方案</strong>：多地域部署</li>
+</ul>
+<h2 id="102">10.2 多模态助手的训练流程</h2>
+<p>多模态大模型的训练比纯文本模型复杂得多，需要处理不同模态间的对齐、融合和协同。本节介绍一个支持文本、图像、语音的多模态助手项目，该系统在多个基准测试中达到 SOTA 性能。</p>
+<h3 id="1021">10.2.1 模态融合架构</h3>
+<h4 id="_18">架构设计原则</h4>
+<ol>
+<li><strong>早期融合 vs 晚期融合</strong></li>
+</ol>
+<p>我们采用混合融合策略：</p>
+<ul>
+<li><strong>早期融合</strong>：低层特征通过 cross-attention 交互</li>
+<li><strong>晚期融合</strong>：高层语义通过 gated fusion 结合</li>
+</ul>
+<div class="codehilite"><pre><span></span><code>视觉编码器 ──┐
+            ├→ Cross-Attention → Transformer Layers → Gated Fusion → 输出
+文本编码器 ──┘                         ↑
+                                    语音编码器
+</code></pre></div>
+
+<ol start="2">
+<li><strong>模态对齐层设计</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">ModalityAligner</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visual_dim</span><span class="p">,</span> <span class="n">text_dim</span><span class="p">,</span> <span class="n">audio_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1"># 投影到统一维度</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visual_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">visual_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">text_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">audio_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+
+        <span class="c1"># 可学习的模态 embedding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modality_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visual</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">audio</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">visual</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visual_proj</span><span class="p">(</span><span class="n">visual</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">modality_embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text_proj</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">modality_embeddings</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">audio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">audio_proj</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">modality_embeddings</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+
+<h4 id="_19">视觉编码器选择</h4>
+<p>对比实验结果：</p>
+<p>| 编码器 | 参数量 | 图像理解 | 训练速度 | 内存占用 |</p>
+<table>
+<thead>
+<tr>
+<th>编码器</th>
+<th>参数量</th>
+<th>图像理解</th>
+<th>训练速度</th>
+<th>内存占用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CLIP ViT-L</td>
+<td>428M</td>
+<td>85.2%</td>
+<td>1.0x</td>
+<td>16GB</td>
+</tr>
+<tr>
+<td>EVA-CLIP</td>
+<td>1B</td>
+<td>87.8%</td>
+<td>0.6x</td>
+<td>24GB</td>
+</tr>
+<tr>
+<td>SigLIP</td>
+<td>400M</td>
+<td>86.5%</td>
+<td>1.2x</td>
+<td>14GB</td>
+</tr>
+<tr>
+<td>DINOv2</td>
+<td>1.1B</td>
+<td>88.1%</td>
+<td>0.5x</td>
+<td>28GB</td>
+</tr>
+</tbody>
+</table>
+<p>最终选择：SigLIP（性能-效率平衡最优）</p>
+<h3 id="1022">10.2.2 数据对齐策略</h3>
+<h4 id="_20">多模态数据收集</h4>
+<ol>
+<li>
+<p><strong>图文对数据</strong>（5M pairs）
+   - LAION-5B 筛选（美学分数 &gt; 6）
+   - CC12M 高质量子集
+   - 内部标注数据（100K）</p>
+</li>
+<li>
+<p><strong>视频-文本数据</strong>（1M clips）
+   - WebVid-10M 采样
+   - 自动字幕生成 + 人工校验</p>
+</li>
+<li>
+<p><strong>语音-文本数据</strong>（2M hours）
+   - LibriSpeech + CommonVoice
+   - 多语言、多口音覆盖</p>
+</li>
+</ol>
+<h4 id="_21">数据预处理管道</h4>
+<p><strong>图像处理</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">transform</span> <span class="o">=</span> <span class="n">Compose</span><span class="p">([</span>
+    <span class="n">RandomResizedCrop</span><span class="p">(</span><span class="mi">224</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)),</span>
+    <span class="n">RandomHorizontalFlip</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+    <span class="n">ColorJitter</span><span class="p">(</span><span class="n">brightness</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">contrast</span><span class="o">=</span><span class="mf">0.4</span><span class="p">),</span>
+    <span class="n">ToTensor</span><span class="p">(),</span>
+    <span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">IMAGENET_MEAN</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">IMAGENET_STD</span><span class="p">)</span>
+<span class="p">])</span>
+</code></pre></div>
+
+<p><strong>文本增强</strong>：</p>
+<ul>
+<li>模板变换：同一语义的多种表达</li>
+<li>反向翻译：英→中→英 增加多样性</li>
+<li>指令改写：将陈述句改为指令格式</li>
+</ul>
+<p><strong>时序对齐</strong>：</p>
+<div class="codehilite"><pre><span></span><code>视频帧采样策略：
+
+- 均匀采样：每秒 1 帧
+- 关键帧采样：场景变化检测
+- 密集采样：动作识别任务（8 fps）
+</code></pre></div>
+
+<h3 id="1023">10.2.3 渐进式训练</h3>
+<h4 id="_22">三阶段训练策略</h4>
+<p><strong>阶段 1：模态对齐预训练</strong>（100K steps）</p>
+<p>目标：学习不同模态的统一表示</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">stage1_config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">frozen_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;text_encoder&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;visual_encoder&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">trainable</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;projection_layers&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;alignment_modules&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1e-4</span>
+<span class="w">  </span><span class="nt">tasks</span><span class="p">:</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">image_text_matching</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">masked_language_modeling</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">image_text_contrastive</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.4</span>
+</code></pre></div>
+
+<p><strong>阶段 2：多模态理解训练</strong>（200K steps）</p>
+<p>目标：跨模态推理能力</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">stage2_config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">frozen_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;visual_encoder.layers[:-2]&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5e-5</span>
+<span class="w">  </span><span class="nt">tasks</span><span class="p">:</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">visual_question_answering</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.25</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">image_captioning</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.25</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">visual_reasoning</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.25</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">audio_understanding</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.25</span>
+</code></pre></div>
+
+<p><strong>阶段 3：指令微调</strong>（50K steps）</p>
+<p>目标：遵循多模态指令</p>
+<p>训练数据分布：</p>
+<ul>
+<li>纯文本指令：30%</li>
+<li>图像相关指令：40%</li>
+<li>音频相关指令：20%</li>
+<li>混合模态指令：10%</li>
+</ul>
+<p>💡 <strong>关键发现</strong>：在阶段 2 加入 10% 的纯文本数据可以有效防止语言能力退化。</p>
+<h3 id="1024">10.2.4 跨模态能力评估</h3>
+<h4 id="_23">评估基准设计</h4>
+<ol>
+<li>
+<p><strong>单模态基准</strong>
+   - 文本：MMLU, HellaSwag, ARC
+   - 图像：ImageNet, COCO Detection
+   - 音频：LibriSpeech WER</p>
+</li>
+<li>
+<p><strong>跨模态基准</strong>
+   - VQA v2：视觉问答
+   - NLVR2：视觉推理
+   - Flickr30K：图文检索
+   - AVSD：音视频对话</p>
+</li>
+<li>
+<p><strong>自建评估集</strong>
+   - 多跳推理：需要结合多个模态信息
+   - 指令泛化：未见过的指令组合
+   - 鲁棒性测试：对抗样本、噪声输入</p>
+</li>
+</ol>
+<h4 id="_24">评估指标体系</h4>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">MultiModalEvaluator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">AccuracyMetric</span><span class="p">(),</span>
+            <span class="s1">&#39;bleu&#39;</span><span class="p">:</span> <span class="n">BLEUMetric</span><span class="p">(),</span>
+            <span class="s1">&#39;clip_score&#39;</span><span class="p">:</span> <span class="n">CLIPScoreMetric</span><span class="p">(),</span>
+            <span class="s1">&#39;perplexity&#39;</span><span class="p">:</span> <span class="n">PerplexityMetric</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">references</span><span class="p">,</span> <span class="n">modalities</span><span class="p">):</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">modality</span> <span class="ow">in</span> <span class="n">modalities</span><span class="p">:</span>
+            <span class="n">modal_preds</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="n">modality</span><span class="p">]</span>
+            <span class="n">modal_refs</span> <span class="o">=</span> <span class="n">references</span><span class="p">[</span><span class="n">modality</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">modality</span> <span class="o">==</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span>
+                <span class="n">results</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">modality</span><span class="si">}</span><span class="s1">_bleu&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;bleu&#39;</span><span class="p">](</span><span class="n">modal_preds</span><span class="p">,</span> <span class="n">modal_refs</span><span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">modality</span><span class="si">}</span><span class="s1">_ppl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perplexity&#39;</span><span class="p">](</span><span class="n">modal_preds</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">modality</span> <span class="o">==</span> <span class="s1">&#39;vision&#39;</span><span class="p">:</span>
+                <span class="n">results</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">modality</span><span class="si">}</span><span class="s1">_acc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">](</span><span class="n">modal_preds</span><span class="p">,</span> <span class="n">modal_refs</span><span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">modality</span><span class="si">}</span><span class="s1">_clip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;clip_score&#39;</span><span class="p">](</span><span class="n">modal_preds</span><span class="p">,</span> <span class="n">modal_refs</span><span class="p">)</span>
+
+        <span class="c1"># 跨模态一致性</span>
+        <span class="n">results</span><span class="p">[</span><span class="s1">&#39;cross_modal_alignment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_alignment</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+</code></pre></div>
+
+<h3 id="1025">10.2.5 推理优化</h3>
+<h4 id="_25">模态级优化</h4>
+<ol>
+<li><strong>动态模态选择</strong></li>
+</ol>
+<p>根据输入自动判断需要激活的编码器：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">dynamic_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">active_encoders</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">active_encoders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visual_encoder</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;audio&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">active_encoders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">audio_encoder</span><span class="p">)</span>
+
+    <span class="c1"># 只计算必要的编码器</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="p">[</span><span class="n">enc</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span> <span class="k">for</span> <span class="n">enc</span><span class="p">,</span> <span class="n">inp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">active_encoders</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion_layer</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>缓存策略</strong></li>
+</ol>
+<ul>
+<li><strong>KV Cache</strong>：标准 Transformer 缓存</li>
+<li><strong>Visual Cache</strong>：相似图像的特征复用</li>
+<li><strong>Instruction Cache</strong>：常见指令的预计算</li>
+</ul>
+<ol start="3">
+<li><strong>量化方案</strong></li>
+</ol>
+<p>不同模块采用不同量化策略：</p>
+<p>| 模块 | 量化方法 | 精度损失 |</p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>量化方法</th>
+<th>精度损失</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>视觉编码器</td>
+<td>INT8 动态量化</td>
+<td>&lt; 0.5%</td>
+</tr>
+<tr>
+<td>文本编码器</td>
+<td>FP16</td>
+<td>&lt; 0.1%</td>
+</tr>
+<tr>
+<td>融合层</td>
+<td>INT8 静态量化</td>
+<td>&lt; 1%</td>
+</tr>
+<tr>
+<td>输出层</td>
+<td>FP32（不量化）</td>
+<td>0%</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_26">服务化部署</h4>
+<div class="codehilite"><pre><span></span><code><span class="nt">deployment_config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">model_parallel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">  </span><span class="c1"># 模型并行度</span>
+<span class="w">  </span><span class="nt">data_parallel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">   </span><span class="c1"># 数据并行度</span>
+
+<span class="w">  </span><span class="nt">serving</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">max_batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">    </span><span class="nt">dynamic_batching</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">timeout_ms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span>
+
+<span class="w">  </span><span class="nt">optimization</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">use_flash_attention</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">use_xformers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">compile_mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;reduce-overhead&quot;</span>
+</code></pre></div>
+
+<p>⚠️ <strong>部署陷阱</strong>：多模态模型的 batch 组装需要特别注意 padding，不同长度的文本和不同分辨率的图像会导致大量无效计算。</p>
+<h2 id="103">10.3 领域专家模型的构建</h2>
+<p>领域专家模型需要在保持通用能力的同时，深度掌握特定领域知识。本节以医疗领域为例，展示如何构建一个既懂医学知识又能自然交互的专家助手。</p>
+<h3 id="1031">10.3.1 领域知识注入</h3>
+<h4 id="_27">知识来源与质量控制</h4>
+<ol>
+<li><strong>权威数据源</strong></li>
+</ol>
+<ul>
+<li><strong>医学教科书</strong>：200+ 本标准教材</li>
+<li><strong>临床指南</strong>：WHO、CDC 等权威指南</li>
+<li><strong>医学文献</strong>：PubMed 近 10 年高引论文</li>
+<li><strong>病例数据</strong>：脱敏的真实病例（50K+）</li>
+<li><strong>医学百科</strong>：MedlinePlus、UpToDate</li>
+</ul>
+<ol start="2">
+<li><strong>知识图谱构建</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code>疾病实体 ──[症状关系]──&gt; 症状实体
+    ↓                        ↑
+[治疗关系]              [检查关系]
+    ↓                        ↑
+药物实体 ←──[相互作用]──→ 检查实体
+</code></pre></div>
+
+<p>知识三元组示例：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">knowledge_triples</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;糖尿病&quot;</span><span class="p">,</span> <span class="s2">&quot;常见症状&quot;</span><span class="p">,</span> <span class="s2">&quot;多饮多尿&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;二甲双胍&quot;</span><span class="p">,</span> <span class="s2">&quot;治疗&quot;</span><span class="p">,</span> <span class="s2">&quot;2型糖尿病&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;二甲双胍&quot;</span><span class="p">,</span> <span class="s2">&quot;禁忌症&quot;</span><span class="p">,</span> <span class="s2">&quot;肾功能不全&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;HbA1c&quot;</span><span class="p">,</span> <span class="s2">&quot;诊断标准&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;6.5%&quot;</span><span class="p">)</span>
+<span class="p">]</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>知识验证流程</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">validate_medical_knowledge</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">knowledge_base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;验证医学内容的准确性&quot;&quot;&quot;</span>
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">extract_medical_claims</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">claim</span> <span class="ow">in</span> <span class="n">claims</span><span class="p">:</span>
+        <span class="c1"># 1. 检查与知识库的一致性</span>
+        <span class="n">kb_consistency</span> <span class="o">=</span> <span class="n">check_kb_consistency</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="n">knowledge_base</span><span class="p">)</span>
+
+        <span class="c1"># 2. 交叉引用验证</span>
+        <span class="n">citations</span> <span class="o">=</span> <span class="n">find_citations</span><span class="p">(</span><span class="n">claim</span><span class="p">)</span>
+        <span class="n">citation_quality</span> <span class="o">=</span> <span class="n">evaluate_citation_quality</span><span class="p">(</span><span class="n">citations</span><span class="p">)</span>
+
+        <span class="c1"># 3. 专家审核标记</span>
+        <span class="k">if</span> <span class="n">kb_consistency</span> <span class="o">&lt;</span> <span class="mf">0.8</span> <span class="ow">or</span> <span class="n">citation_quality</span> <span class="o">&lt;</span> <span class="mf">0.7</span><span class="p">:</span>
+            <span class="n">claim</span><span class="o">.</span><span class="n">mark_for_expert_review</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">claims</span>
+</code></pre></div>
+
+<h4 id="_28">知识注入方法</h4>
+<ol>
+<li><strong>继续预训练（CPT）</strong></li>
+</ol>
+<p>在通用模型基础上继续预训练：</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">cpt_config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">base_model</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;llama-2-7b&quot;</span>
+<span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5e-5</span>
+<span class="w">  </span><span class="nt">total_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100000</span>
+
+<span class="w">  </span><span class="nt">data_mixture</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">medical_textbooks</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3</span>
+<span class="w">    </span><span class="nt">clinical_guidelines</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">    </span><span class="nt">medical_papers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">    </span><span class="nt">general_corpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3</span><span class="w">  </span><span class="c1"># 防止遗忘</span>
+
+<span class="w">  </span><span class="nt">curriculum</span><span class="p">:</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;basic&quot;</span>
+<span class="w">      </span><span class="nt">steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30000</span>
+<span class="w">      </span><span class="nt">focus</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;medical_terminology&quot;</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;intermediate&quot;</span>
+<span class="w">      </span><span class="nt">steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40000</span>
+<span class="w">      </span><span class="nt">focus</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;disease_pathology&quot;</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;advanced&quot;</span>
+<span class="w">      </span><span class="nt">steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30000</span>
+<span class="w">      </span><span class="nt">focus</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;clinical_reasoning&quot;</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>知识蒸馏</strong></li>
+</ol>
+<p>从大型医学模型蒸馏到部署规模：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">MedicalKnowledgeDistillation</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">teacher_model</span><span class="p">,</span> <span class="n">student_model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">teacher</span> <span class="o">=</span> <span class="n">teacher_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">student</span> <span class="o">=</span> <span class="n">student_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="o">=</span> <span class="mf">5.0</span>
+
+    <span class="k">def</span> <span class="nf">distillation_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">teacher_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">teacher</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+        <span class="n">student_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+        <span class="c1"># KL divergence loss</span>
+        <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">student_logits</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">temp</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">teacher_logits</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">temp</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;batchmean&#39;</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Combined with task loss</span>
+        <span class="n">task_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">student_logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">kl_loss</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">task_loss</span>
+</code></pre></div>
+
+<h3 id="1032">10.3.2 专业数据采集</h3>
+<h4 id="_29">数据采集策略</h4>
+<ol>
+<li><strong>主动学习采样</strong></li>
+</ol>
+<p>优先采集模型不确定的样本：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">uncertainty_sampling</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">unlabeled_pool</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;基于不确定性的主动学习&quot;&quot;&quot;</span>
+    <span class="n">uncertainties</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">unlabeled_pool</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="n">probs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># 熵作为不确定性度量</span>
+            <span class="n">entropy</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">probs</span> <span class="o">*</span> <span class="n">probs</span><span class="o">.</span><span class="n">log</span><span class="p">())</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entropy</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+    <span class="c1"># 选择不确定性最高的样本</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">uncertainties</span><span class="p">)[</span><span class="o">-</span><span class="n">n_samples</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">unlabeled_pool</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>专家标注系统</strong></li>
+</ol>
+<p>分级标注流程：</p>
+<div class="codehilite"><pre><span></span><code>初级标注员（医学生）
+    ↓ [基础标注]
+质量检查点 1
+    ↓ [通过率 &gt; 90%]
+中级审核员（住院医师）
+    ↓ [临床验证]
+质量检查点 2
+    ↓ [分歧案例]
+高级专家（主治医师）
+    ↓ [最终确认]
+入库
+</code></pre></div>
+
+<ol start="3">
+<li><strong>合成数据生成</strong></li>
+</ol>
+<p>基于模板的病例生成：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">generate_synthetic_cases</span><span class="p">(</span><span class="n">templates</span><span class="p">,</span> <span class="n">knowledge_base</span><span class="p">,</span> <span class="n">n_cases</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;生成合成病例数据&quot;&quot;&quot;</span>
+    <span class="n">cases</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_cases</span><span class="p">):</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>
+
+        <span class="c1"># 填充疾病信息</span>
+        <span class="n">disease</span> <span class="o">=</span> <span class="n">sample_disease</span><span class="p">(</span><span class="n">knowledge_base</span><span class="p">)</span>
+        <span class="n">symptoms</span> <span class="o">=</span> <span class="n">get_symptoms</span><span class="p">(</span><span class="n">disease</span><span class="p">,</span> <span class="n">knowledge_base</span><span class="p">)</span>
+        <span class="n">treatments</span> <span class="o">=</span> <span class="n">get_treatments</span><span class="p">(</span><span class="n">disease</span><span class="p">,</span> <span class="n">knowledge_base</span><span class="p">)</span>
+
+        <span class="c1"># 生成病例描述</span>
+        <span class="n">case</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">age</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
+            <span class="n">gender</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="s1">&#39;男&#39;</span><span class="p">,</span> <span class="s1">&#39;女&#39;</span><span class="p">]),</span>
+            <span class="n">symptoms</span><span class="o">=</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symptoms</span><span class="p">[:</span><span class="mi">3</span><span class="p">]),</span>
+            <span class="n">duration</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+            <span class="n">diagnosis</span><span class="o">=</span><span class="n">disease</span><span class="p">,</span>
+            <span class="n">treatment</span><span class="o">=</span><span class="n">treatments</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">cases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">case</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cases</span>
+</code></pre></div>
+
+<h3 id="1033">10.3.3 持续学习机制</h3>
+<h4 id="_30">增量学习框架</h4>
+<ol>
+<li><strong>弹性权重巩固（EWC）</strong></li>
+</ol>
+<p>防止灾难性遗忘：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">EWC</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">importance</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">importance</span> <span class="o">=</span> <span class="n">importance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_fisher</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_fisher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;计算 Fisher 信息矩阵&quot;&quot;&quot;</span>
+        <span class="n">fisher</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fisher</span><span class="p">:</span>
+                    <span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">fisher</span><span class="p">:</span>
+            <span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fisher</span>
+
+    <span class="k">def</span> <span class="nf">penalty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;计算 EWC 惩罚项&quot;&quot;&quot;</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">importance</span> <span class="o">*</span> <span class="n">loss</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>知识重放机制</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">ExperienceReplay</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">buffer_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">priorities</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">buffer_size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experience</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">experience</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">priorities</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;优先级采样&quot;&quot;&quot;</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">priorities</span><span class="p">)</span> <span class="o">**</span> <span class="n">alpha</span>
+        <span class="n">probs</span> <span class="o">/=</span> <span class="n">probs</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">),</span> 
+            <span class="n">batch_size</span><span class="p">,</span> 
+            <span class="n">p</span><span class="o">=</span><span class="n">probs</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+</code></pre></div>
+
+<h3 id="1034">10.3.4 性能基准设计</h3>
+<h4 id="_31">医疗领域评估基准</h4>
+<ol>
+<li><strong>知识准确性测试</strong></li>
+</ol>
+<ul>
+<li><strong>MedQA</strong>：医学考试题（USMLE style）</li>
+<li><strong>PubMedQA</strong>：基于文献的问答</li>
+<li><strong>MedMCQA</strong>：多选题医学知识</li>
+</ul>
+<ol start="2">
+<li><strong>临床推理能力</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">evaluate_clinical_reasoning</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_cases</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;评估临床推理能力&quot;&quot;&quot;</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;diagnosis_accuracy&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;treatment_appropriateness&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;safety_score&#39;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="n">test_cases</span><span class="p">:</span>
+        <span class="c1"># 生成诊断</span>
+        <span class="n">diagnosis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate_diagnosis</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">symptoms</span><span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;diagnosis_accuracy&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="n">diagnosis</span> <span class="o">==</span> <span class="n">case</span><span class="o">.</span><span class="n">gold_diagnosis</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 生成治疗方案</span>
+        <span class="n">treatment</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">suggest_treatment</span><span class="p">(</span><span class="n">diagnosis</span><span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;treatment_appropriateness&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">evaluate_treatment</span><span class="p">(</span>
+            <span class="n">treatment</span><span class="p">,</span> <span class="n">case</span><span class="o">.</span><span class="n">gold_treatment</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 安全性检查</span>
+        <span class="n">contraindications</span> <span class="o">=</span> <span class="n">check_contraindications</span><span class="p">(</span>
+            <span class="n">treatment</span><span class="p">,</span> <span class="n">case</span><span class="o">.</span><span class="n">patient_info</span>
+        <span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;safety_score&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">contraindications</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 归一化</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_cases</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">metrics</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>对话质量评估</strong></li>
+</ol>
+<ul>
+<li>专业术语使用准确性</li>
+<li>解释的可理解性</li>
+<li>回答的完整性</li>
+<li>安全建议的适当性</li>
+</ul>
+<h3 id="1035">10.3.5 知识更新策略</h3>
+<h4 id="_32">定期更新流程</h4>
+<ol>
+<li><strong>新知识识别</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">identify_new_knowledge</span><span class="p">(</span><span class="n">recent_papers</span><span class="p">,</span> <span class="n">existing_kb</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;识别需要更新的知识&quot;&quot;&quot;</span>
+    <span class="n">updates</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;new_diseases&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;updated_treatments&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;revised_guidelines&#39;</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">paper</span> <span class="ow">in</span> <span class="n">recent_papers</span><span class="p">:</span>
+        <span class="n">entities</span> <span class="o">=</span> <span class="n">extract_medical_entities</span><span class="p">(</span><span class="n">paper</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entity</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;disease&#39;</span> <span class="ow">and</span> <span class="n">entity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">existing_kb</span><span class="p">:</span>
+                <span class="n">updates</span><span class="p">[</span><span class="s1">&#39;new_diseases&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">entity</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;treatment&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">has_significant_change</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">existing_kb</span><span class="p">):</span>
+                    <span class="n">updates</span><span class="p">[</span><span class="s1">&#39;updated_treatments&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">updates</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>增量训练管道</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="nt">update_pipeline</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">frequency</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;monthly&quot;</span>
+
+<span class="w">  </span><span class="nt">steps</span><span class="p">:</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;collect_updates&quot;</span>
+<span class="w">      </span><span class="nt">sources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;pubmed&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;clinical_trials&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;fda_approvals&quot;</span><span class="p p-Indicator">]</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;validate_updates&quot;</span>
+<span class="w">      </span><span class="nt">validators</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;expert_review&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;consistency_check&quot;</span><span class="p p-Indicator">]</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;prepare_training_data&quot;</span>
+<span class="w">      </span><span class="nt">augmentation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">      </span><span class="nt">balance_with_existing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;incremental_training&quot;</span>
+<span class="w">      </span><span class="nt">method</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ewc&quot;</span>
+<span class="w">      </span><span class="nt">epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">      </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1e-5</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;evaluation&quot;</span>
+<span class="w">      </span><span class="nt">benchmarks</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;medqa&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;safety_tests&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.95</span><span class="w">  </span><span class="c1"># 相对于前版本</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;deployment&quot;</span>
+<span class="w">      </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;gradual_rollout&quot;</span>
+<span class="w">      </span><span class="nt">monitoring_period</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;7d&quot;</span>
+</code></pre></div>
+
+<p>📌 <strong>关键经验</strong>：医疗领域模型更新时，宁可保守也不能引入错误信息。每次更新都需要完整的回归测试。</p>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter9.html" class="nav-link prev">← 第九章：生产部署与监控</a><a href="CLAUDE.html" class="nav-link next">Untitled →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

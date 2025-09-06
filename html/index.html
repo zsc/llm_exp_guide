@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>LLM 后训练实验设计指南</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item active" >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">LLM 后训练实验设计指南</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第一章：后训练基础理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第二章：实验代码基础设施</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第三章：数据工程</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第四章：纯语言任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第五章：多模态任务实验设计</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第六章：强化学习与人类反馈</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第七章：训练循环与迭代优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第八章：评估与基准测试</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第九章：生产部署与监控</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第十章：案例研究与最佳实践</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="llm">LLM 后训练实验设计指南</h1>
+<h2 id="_1">关于本教程</h2>
+<p>本教程面向经验丰富的工程师和 AI 科学家，系统介绍大语言模型（LLM）后训练的实验设计方法论。涵盖从基础理论到生产实践的完整流程，包括纯语言任务、多模态任务、强化学习以及实验代码管理等核心主题。</p>
+<h3 id="_2">学习目标</h3>
+<p>完成本教程后，您将掌握：</p>
+<ul>
+<li>设计和管理大规模 LLM 后训练实验的系统方法</li>
+<li>构建高效的数据采集、标注和训练循环</li>
+<li>实现多模态模型的对齐和优化</li>
+<li>应用 RLHF/RLAIF 等人类反馈技术</li>
+<li>建立可复现、可扩展的实验代码基础设施</li>
+</ul>
+<h3 id="_3">先修知识</h3>
+<p>本教程假设读者已掌握：</p>
+<ul>
+<li>Transformer 架构和注意力机制</li>
+<li>基础深度学习概念（反向传播、优化器、正则化）</li>
+<li>Python 编程和 PyTorch/JAX 框架</li>
+<li>基本的分布式训练概念</li>
+</ul>
+<h2 id="_4">目录</h2>
+<h3 id="_5"><a href="chapter1.html">第一章：后训练基础理论</a></h3>
+<p>深入理解后训练的核心概念、目标和挑战。包括 SFT、RLHF、DPO 等方法的理论基础，以及与预训练的本质区别。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>后训练的目标函数设计</li>
+<li>对齐税（Alignment Tax）与能力权衡</li>
+<li>指令跟随与安全性平衡</li>
+<li>分布偏移问题</li>
+</ul>
+<h3 id="_6"><a href="chapter2.html">第二章：实验代码基础设施</a></h3>
+<p>构建可维护、可扩展的实验代码架构。重点解决实验管理的实际挑战。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>实验配置管理（YAML vs TOML vs Python）</li>
+<li>Flag、环境变量、Git 分支的使用场景</li>
+<li>实验追踪与版本控制策略</li>
+<li>防止代码腐化的最佳实践</li>
+</ul>
+<h3 id="_7"><a href="chapter3.html">第三章：数据工程</a></h3>
+<p>后训练数据的采集、标注、清洗和管理全流程。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>高质量指令数据的构造方法</li>
+<li>标注规范设计与质量控制</li>
+<li>数据飞轮（Data Flywheel）搭建</li>
+<li>合成数据生成策略</li>
+<li>数据配比与课程学习</li>
+</ul>
+<h3 id="_8"><a href="chapter4.html">第四章：纯语言任务实验设计</a></h3>
+<p>针对文本生成、理解和推理任务的实验方法。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>多轮对话的意图识别与状态管理</li>
+<li>长文本处理与位置编码优化</li>
+<li>思维链（CoT）训练策略</li>
+<li>领域适应与持续学习</li>
+<li>幻觉检测与缓解</li>
+</ul>
+<h3 id="_9"><a href="chapter5.html">第五章：多模态任务实验设计</a></h3>
+<p>视觉、音频、视频等多模态融合的训练方法。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>视觉-语言对齐（CLIP、ALIGN、FLIP）</li>
+<li>图像理解与生成的统一建模</li>
+<li>音频模态集成（语音识别、音乐理解）</li>
+<li>视频理解的时序建模</li>
+<li>跨模态注意力机制设计</li>
+</ul>
+<h3 id="_10"><a href="chapter6.html">第六章：强化学习与人类反馈</a></h3>
+<p>RLHF、DPO、PPO 等基于反馈的优化方法。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>奖励模型的训练与校准</li>
+<li>PPO 在 LLM 中的实现细节</li>
+<li>DPO 与 IPO 的比较分析</li>
+<li>Constitutional AI 与自我改进</li>
+<li>在线与离线 RL 的权衡</li>
+</ul>
+<h3 id="_11"><a href="chapter7.html">第七章：训练循环与迭代优化</a></h3>
+<p>端到端的训练流程设计与优化策略。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>数据-标注-训练-评估循环设计</li>
+<li>主动学习与数据选择策略</li>
+<li>模型合并与集成学习</li>
+<li>超参数搜索的实用技巧</li>
+<li>分布式训练的工程优化</li>
+</ul>
+<h3 id="_12"><a href="chapter8.html">第八章：评估与基准测试</a></h3>
+<p>全面的模型评估体系构建。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>自动评估指标设计</li>
+<li>人工评估的组织与偏差控制</li>
+<li>A/B 测试与在线实验</li>
+<li>基准测试集的构建原则</li>
+<li>评估数据泄露的检测与预防</li>
+</ul>
+<h3 id="_13"><a href="chapter9.html">第九章：生产部署与监控</a></h3>
+<p>从实验到生产的完整路径。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>模型压缩与加速技术</li>
+<li>服务化架构设计</li>
+<li>实时监控与告警系统</li>
+<li>模型漂移检测</li>
+<li>回滚与灰度发布策略</li>
+</ul>
+<h3 id="_14"><a href="chapter10.html">第十章：案例研究与最佳实践</a></h3>
+<p>真实场景的端到端实践案例。</p>
+<p><strong>关键主题</strong>：</p>
+<ul>
+<li>ChatGPT 类对话系统的完整实现</li>
+<li>多模态助手的训练流程</li>
+<li>领域专家模型的构建</li>
+<li>常见失败模式与调试技巧</li>
+</ul>
+<h2 id="_15">使用指南</h2>
+<h3 id="_16">练习题说明</h3>
+<p>每章包含 6-8 道精心设计的练习题：</p>
+<ul>
+<li><strong>基础题</strong>（50%）：巩固核心概念，验证理解</li>
+<li><strong>挑战题</strong>（50%）：开放性思考，探索前沿问题</li>
+<li>所有题目提供提示（Hint）引导思考方向</li>
+<li>参考答案默认折叠，鼓励独立思考</li>
+</ul>
+<h3 id="_17">学习建议</h3>
+<ol>
+<li><strong>循序渐进</strong>：建议按章节顺序学习，每章概念相互关联</li>
+<li><strong>动手实践</strong>：完成每章练习题，加深理解</li>
+<li><strong>记录笔记</strong>：总结每章的关键 Rule-of-Thumb</li>
+<li><strong>参与讨论</strong>：与同行交流实验经验和踩坑心得</li>
+</ol>
+<h3 id="_18">符号约定</h3>
+<ul>
+<li>📌 <strong>重要概念</strong>：需要重点掌握的核心知识</li>
+<li>⚠️ <strong>常见陷阱</strong>：容易出错的地方</li>
+<li>💡 <strong>实用技巧</strong>：经过验证的最佳实践</li>
+<li>🔬 <strong>深入探索</strong>：可选的进阶内容</li>
+</ul>
+<h2 id="_19">版本信息</h2>
+<ul>
+<li><strong>版本</strong>：1.0.0</li>
+<li><strong>最后更新</strong>：2025年1月</li>
+<li><strong>作者团队</strong>：LLM 后训练研究组</li>
+</ul>
+<h2 id="_20">反馈与贡献</h2>
+<p>欢迎提出改进建议和纠错。本教程将持续更新，融入最新的研究进展和工程实践。</p>
+<hr />
+<p><strong>开始学习</strong>：<a href="chapter1.html">第一章：后训练基础理论 →</a></p>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter1.html" class="nav-link next">第一章：后训练基础理论 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>
